@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+	<node name="zed_nodelet_manager" pkg="nodelet" type="nodelet" args="manager" />
+	<node name="zed_nodelet" pkg="nodelet" type="nodelet" args="load zed_nodelets/ZEDWrapperNodelet zed_nodelet_manager" />
+</launch>
