@@ -1,3 +1,4 @@
+//aaw_image_processer_1
 //get images from topic "simple_camera/image_raw"; remap, as desired;
 //search for red pixels;
 // convert (sufficiently) red pixels to white, all other pixels black
@@ -20,7 +21,7 @@ class ImageConverter {
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_sub_;
     image_transport::Publisher image_pub_;
-
+    //francis
 public:
 
     ImageConverter(ros::NodeHandle &nodehandle)
@@ -137,7 +138,7 @@ int main(int argc, char** argv) {
     ImageConverter ic(n); // instantiate object of class ImageConverter
     //cout << "enter red ratio threshold: (e.g. 10) ";
     //cin >> g_redratio;
-    g_redratio= 10; //choose a threshold to define what is "red" enough
+    g_redratio= 5; //choose a threshold to define what is "red" enough
     ros::Duration timer(0.1);
     double x, y, z;
     while (ros::ok()) {

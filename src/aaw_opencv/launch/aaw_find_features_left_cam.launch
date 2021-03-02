@@ -5,11 +5,11 @@
  
 <!--launch image_view for left camera, and find_red_pixels for left camera-->
 <node pkg="image_view" type="image_view" name="image_view_left">
-<remap from="image" to="/zedm/zed_node/left/image_rect_color"/>
+<remap from="image" to="/zedm/zed_node/left/image_rect_gray"/>
 </node>
 
-<node pkg="example_opencv" type="find_features" name="find_features_left" output="screen">
-<remap from="simple_camera/image_raw" to="/zedm/zed_node/left/image_rect_color"/>
+<node pkg="aaw_opencv" type="aaw_find_features" name="aaw_find_features_left" output="screen">
+<remap from="simple_camera/image_raw" to="/zedm/zed_node/left/image_rect_gray"/>
 </node>
 
 

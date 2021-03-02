@@ -1,4 +1,3 @@
-//aaw_image_processer_1
 //get images from topic "simple_camera/image_raw"; remap, as desired;
 //search for red pixels;
 // convert (sufficiently) red pixels to white, all other pixels black
@@ -21,7 +20,7 @@ class ImageConverter {
     image_transport::ImageTransport it_;
     image_transport::Subscriber image_sub_;
     image_transport::Publisher image_pub_;
-    //francis
+
 public:
 
     ImageConverter(ros::NodeHandle &nodehandle)
@@ -47,8 +46,13 @@ public:
             ROS_ERROR("cv_bridge exception: %s", e.what());
             return;
         }
-
         
+        
+        cv::Mat dstImage;
+        cv::cvtColor(cv_ptr->image, dstImage, cv::COLOR_BGR2GRAY);
+        cv::GaussianBlur(dstImage, dstImage, cv::Size(3,3),0,0);
+        cv::Canny(dstImage, dstImage, 3, 9, 3);
+        cv::imshow(OPENCV_WINDOW, dstImage);        
         
         // look for red pixels; turn all other pixels black, and turn red pixels white
         int npix = 0; //count the red pixels
@@ -119,15 +123,15 @@ public:
 
         }
         // Update GUI Window; this will display processed images on the open-cv viewer.
-        //cv::imshow(OPENCV_WINDOW, cv_ptr->image); //display processed image
-        //cv::imshow(OPENCV_WINDOW, gray_image); //display the grayscale image
-        cv::imshow(OPENCV_WINDOW, contours); //display the contours
+        // cv::imshow(OPENCV_WINDOW, cv_ptr->image); //display processed image
+        // cv::imshow(OPENCV_WINDOW, gray_image); //display the grayscale image
+        // cv::imshow(OPENCV_WINDOW, contours); //display the contours
         cv::waitKey(3); //need waitKey call to update OpenCV image window
 
         // Also, publish the processed image as a ROS message on a ROS topic
         // can view this stream in ROS with: 
         //rosrun image_view image_view image:=/image_converter/output_video
-        image_pub_.publish(cv_ptr->toImageMsg());
+        // image_pub_.publish(cv_ptr->toImageMsg());
 
     }
 }; //end of class definition

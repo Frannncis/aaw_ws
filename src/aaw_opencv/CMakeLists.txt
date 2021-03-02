@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(example_opencv)
+project(aaw_opencv)
 
 find_package(catkin_simple REQUIRED)
 
@@ -33,18 +33,18 @@ catkin_simple()
 
 # Executables: uncomment the following and edit arguments to compile new nodes
 # may add more of these lines for more nodes from the same package
-cs_add_executable(find_red_pixels src/find_red_pixels.cpp)
-cs_add_executable(find_features src/find_features.cpp)
-cs_add_executable(find_connected_components src/find_connected_components.cpp)
+cs_add_executable(aaw_find_red_pixels src/aaw_find_red_pixels.cpp)
+cs_add_executable(aaw_find_features src/aaw_find_features.cpp)
+cs_add_executable(aaw_find_connected_components src/aaw_find_connected_components.cpp)
 cs_add_executable(aaw_image_processer src/aaw_image_processer.cpp)
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package
 # target_link_libraries(example my_lib)
 
-target_link_libraries( find_red_pixels ${OpenCV_LIBS})
-target_link_libraries( find_features ${OpenCV_LIBS})
-target_link_libraries( find_connected_components ${OpenCV_LIBS})
+target_link_libraries( aaw_find_red_pixels ${OpenCV_LIBS})
+target_link_libraries( aaw_find_features ${OpenCV_LIBS})
+target_link_libraries( aaw_find_connected_components ${OpenCV_LIBS})
 target_link_libraries( aaw_image_processer ${OpenCV_LIBS})
 
 cs_install()
