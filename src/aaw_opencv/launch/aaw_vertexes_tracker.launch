@@ -1,0 +1,13 @@
+<launch>
+<!--launch image_view for left camera, and find_red_pixels for left camera-->
+<node pkg="image_view" type="image_view" name="image_view_left">
+<param name="autosize" value="false"/>
+<remap from="image" to="/zedm/zed_node/left/image_rect_gray"/>
+</node>
+
+<node pkg="aaw_opencv" type="aaw_vertexes_tracker" name="aaw_vertexes_tracker" output="screen">
+<remap from="simple_camera/image_raw" to="/zedm/zed_node/left/image_rect_gray"/>
+</node>
+
+
+</launch>

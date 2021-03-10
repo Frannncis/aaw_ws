@@ -21,7 +21,17 @@ flags = [
 '-isystem',
 '/home/nabilic/aaw_ws/devel/include',
 '-isystem',
-'/home/nabilic/aaw_ws/src/CMakeLists.txt/include'
+'/home/nabilic/aaw_ws/src/aaw_opencv/include',
+'-isystem',
+'/home/nabilic/aaw_ws/src/zed_interfaces/include',
+'-isystem',
+'/home/nabilic/aaw_ws/src/zed_nodelets/include',
+'-isystem',
+'/home/nabilic/aaw_ws/src/zed_ros/include',
+'-isystem',
+'/home/nabilic/aaw_ws/src/zed_video_sub_tutorial/include',
+'-isystem',
+'/home/nabilic/aaw_ws/src/zed_wrapper/include'
 ]
 
 compilation_database_folder = ''

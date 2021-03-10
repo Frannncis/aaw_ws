@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(aaw_opencv)
 
+add_compile_options(-std=c++11)
+
 find_package(catkin_simple REQUIRED)
 
 #uncomment next line to use OpenCV library
@@ -37,6 +39,7 @@ cs_add_executable(aaw_find_red_pixels src/aaw_find_red_pixels.cpp)
 cs_add_executable(aaw_find_features src/aaw_find_features.cpp)
 cs_add_executable(aaw_find_connected_components src/aaw_find_connected_components.cpp)
 cs_add_executable(aaw_image_processer src/aaw_image_processer.cpp)
+cs_add_executable(aaw_vertexes_tracker src/aaw_vertexes_tracker.cpp src/aawvertexesgainer.cpp)
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package
@@ -46,6 +49,11 @@ target_link_libraries( aaw_find_red_pixels ${OpenCV_LIBS})
 target_link_libraries( aaw_find_features ${OpenCV_LIBS})
 target_link_libraries( aaw_find_connected_components ${OpenCV_LIBS})
 target_link_libraries( aaw_image_processer ${OpenCV_LIBS})
+target_link_libraries( aaw_vertexes_tracker ${OpenCV_LIBS})
 
 cs_install()
 cs_export()
+
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+)
