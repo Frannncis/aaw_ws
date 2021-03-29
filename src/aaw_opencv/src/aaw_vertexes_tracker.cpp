@@ -9,6 +9,8 @@
 #include <message_filters/time_synchronizer.h>
 #include <Eigen/Dense>
 #include "aawibvs.h"
+#include <aaw_opencv/MoveRobot.h>
+#include <boost/bind.hpp>
 
 static const std::string Left_View = "Left View";
 static const std::string Right_View = "Right View";
@@ -16,6 +18,8 @@ static const std::string Right_View = "Right View";
 using namespace std;
 using namespace sensor_msgs;
 using namespace message_filters;
+
+ros::ServiceClient *moveClientPtr;
 
 //image comes in as a ROS message, but gets converted to an OpenCV type
 void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::ImageConstPtr& rightImage) {
@@ -44,16 +48,36 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     std::cout<<"Control velocity:\n"<<controlVel<<std::endl;
     cv::imshow(Left_View, grayImageLeft);
     cv::imshow(Right_View, grayImageRight);
+
+    aaw_opencv::MoveRobot moveSrv;
+    moveSrv.request.x = controlVel(0);
+    moveSrv.request.y = controlVel(1);
+    moveSrv.request.z = controlVel(2);
+    moveSrv.request.a = controlVel(3);
+    moveSrv.request.b = controlVel(4);
+    moveSrv.request.c = controlVel(5);
+    ros::ServiceClient client = (ros::ServiceClient)*moveClientPtr;
+    if (client.call(moveSrv)) {
+        ROS_INFO("Feedback from server: %d", moveSrv.response.ExecStatus);
+    }
+    else {
+        ROS_ERROR("Failed to call service \"move_robot_to_pos\"\n");
+    }
+    
     cv::waitKey(3);
 }
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "vertexes_tracker");
     ros::NodeHandle nh_;
+
     message_filters::Subscriber<sensor_msgs::Image> left_image_sub_(nh_, "/image_raw/left", 1);
     message_filters::Subscriber<sensor_msgs::Image> right_image_sub_(nh_, "/image_raw/right", 1);
     TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image> sync(left_image_sub_, right_image_sub_, 10);
     sync.registerCallback(boost::bind(&imageCb, _1, _2));
+
+    ros::ServiceClient moveClient = nh_.serviceClient<aaw_opencv::MoveRobot>("move_robot_to_pos");
+    moveClientPtr = &moveClient;
 
     cv::namedWindow(Left_View, cv::WINDOW_NORMAL);
     cv::resizeWindow(Left_View, 800, 450);

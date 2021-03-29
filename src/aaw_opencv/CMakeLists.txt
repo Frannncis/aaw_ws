@@ -10,17 +10,20 @@ find_package(OpenCV REQUIRED)
 
 #uncomment the next 2 lines to use the point-cloud library
 #find_package(PCL 1.7 REQUIRED)
-include_directories(
-  include ${catkin_INCLUDE_DIRS}
-  "/usr/include/eigen3"
-)
+
+
 
 
 #uncomment the following 4 lines to use the Eigen library
-#find_package(cmake_modules REQUIRED)
-#find_package(Eigen3 REQUIRED)
-#include_directories(${EIGEN3_INCLUDE_DIR})
-#add_definitions(${EIGEN_DEFINITIONS})
+find_package(cmake_modules REQUIRED)
+find_package(Eigen3 REQUIRED)
+include_directories(include ${catkin_INCLUDE_DIRS}${EIGEN3_INCLUDE_DIR})
+add_definitions(${EIGEN_DEFINITIONS})
+# 或者用下面这种方式使用Eigen库
+# include_directories(
+#   include ${catkin_INCLUDE_DIRS}
+#   "/usr/include/eigen3"
+# )
 
 catkin_simple()
 
@@ -41,6 +44,7 @@ cs_add_executable(aaw_find_features src/aaw_find_features.cpp)
 cs_add_executable(aaw_find_connected_components src/aaw_find_connected_components.cpp)
 cs_add_executable(aaw_image_processer src/aaw_image_processer.cpp)
 cs_add_executable(aaw_vertexes_tracker src/aaw_vertexes_tracker.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
+cs_add_executable(aaw_move_robot src/aaw_move_robot.cpp src/aawtcpserver.cpp)
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package
@@ -51,10 +55,7 @@ target_link_libraries( aaw_find_features ${OpenCV_LIBS})
 target_link_libraries( aaw_find_connected_components ${OpenCV_LIBS})
 target_link_libraries( aaw_image_processer ${OpenCV_LIBS})
 target_link_libraries( aaw_vertexes_tracker ${OpenCV_LIBS})
+target_link_libraries( aaw_move_robot libjsoncpp.a)
 
 cs_install()
 cs_export()
-
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-)
