@@ -19,9 +19,7 @@
 // };
 
 #include "aaw_move_robot.h"
-
-
-
+ 
 AAWMoveRobotClass::AAWMoveRobotClass(ros::NodeHandle* nodehandle):nh_(*nodehandle)
 {
     ROS_INFO("in class constructor of AAWMoveRobotClass");
@@ -29,7 +27,8 @@ AAWMoveRobotClass::AAWMoveRobotClass(ros::NodeHandle* nodehandle):nh_(*nodehandl
     ROS_INFO("Ready to move robot.");
     myTCPServerPtr_ = new AAWTCPServer(3000);   //没有写delete,暂时不知道放在哪里,反正只有一个对象,问题不大,后续再考虑
     std::vector<float> velAcc{3, 5, 5, 10};
-    (*myTCPServerPtr_).setVelAcc(velAcc);
+    myTCPServerPtr_->setVelAcc(velAcc);
+    myTCPServerPtr_->waitUntilConnected();
     std::cout<<"Client connected!\n";
 }
 
@@ -45,14 +44,26 @@ bool AAWMoveRobotClass::serviceCallback(aaw_opencv::MoveRobotRequest& requestPos
     pos.push_back(requestPos.c);
 
     std::cout<<"pos received: \n";
+    execStatus.ExecStatus = myTCPServerPtr_->move(pos);
+    std::cout<<"Moved to pos:\n";
     for (size_t i = 0; i < 6; ++i)
-    {
         std::cout<<pos[i]<<"\n";
-    }
-
-    execStatus.ExecStatus = 123;
     
     return true;
+}
+
+int AAWMoveRobotClass::AAWEnableRobot()
+{
+    while (!(myTCPServerPtr_->enableRobot()))
+        sleep(1);
+    std::cout<<"Robot enabled!\n";
+}
+
+int AAWMoveRobotClass::AAWDisableRobot()
+{
+    while (!(myTCPServerPtr_->disableRobot()))
+        sleep(1);
+    std::cout<<"Robot disabled!\n";
 }
 
 // bool callback(aaw_opencv::MoveRobotRequest& requestPos, aaw_opencv::MoveRobotResponse& execStatus)
@@ -86,6 +97,8 @@ int main(int argc, char **argv)
     // ROS_INFO("Ready to move robot.");
 
     AAWMoveRobotClass amr(&nh);
+
+
     
     ros::spin();
 

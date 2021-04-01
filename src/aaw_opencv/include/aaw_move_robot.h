@@ -11,6 +11,8 @@ class AAWMoveRobotClass
 {
 public:
     AAWMoveRobotClass(ros::NodeHandle* nodehandle);
+    int AAWEnableRobot();
+    int AAWDisableRobot();
 
 private:
     ros::NodeHandle nh_;
