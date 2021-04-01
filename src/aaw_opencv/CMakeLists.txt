@@ -44,7 +44,7 @@ cs_add_executable(aaw_find_features src/aaw_find_features.cpp)
 cs_add_executable(aaw_find_connected_components src/aaw_find_connected_components.cpp)
 cs_add_executable(aaw_image_processer src/aaw_image_processer.cpp)
 cs_add_executable(aaw_vertexes_tracker src/aaw_vertexes_tracker.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
-cs_add_executable(aaw_move_robot src/aaw_move_robot.cpp src/aawtcpserver.cpp)
+cs_add_executable(aaw_move_robot src/aaw_move_robot.cpp src/aawtcpserver.cpp src/aawcoordtransform.cpp)
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package

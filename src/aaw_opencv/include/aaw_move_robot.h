@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include "aawtcpserver.h"
+#include "aawcoordtransform.h"
 
 class AAWMoveRobotClass
 {
@@ -18,6 +19,7 @@ private:
     ros::NodeHandle nh_;
     ros::ServiceServer moveRobotService_;
     AAWTCPServer *myTCPServerPtr_;
+    AAWCoordTransform *coordTransformerPtr_;
 
     bool serviceCallback(aaw_opencv::MoveRobotRequest& requestPos, aaw_opencv::MoveRobotResponse& execStatus);
 };

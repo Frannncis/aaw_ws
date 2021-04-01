@@ -33,7 +33,7 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     }
     
     AawVertexesGainer vg4Left, vg4Right;
-    Eigen::VectorXd controlVel;
+    Eigen::VectorXd cameraVel;
     AawIBVS ibvs(AawIBVS::SN11818179);
     cv::Mat grayImageLeft, grayImageRight;
     cv::cvtColor(cv_ptr_left->image, grayImageLeft, cv::COLOR_BGR2GRAY);
@@ -44,18 +44,18 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     vg4Right = AawVertexesGainer(grayImageRight);
     ibvs.updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
     ibvs.updateControlLaw();
-    controlVel = ibvs.getControlVel();
-    std::cout<<"Control velocity:\n"<<controlVel<<std::endl;
+    cameraVel = ibvs.getControlVel();
+    std::cout<<"Control velocity:\n"<<cameraVel<<std::endl;
     cv::imshow(Left_View, grayImageLeft);
     cv::imshow(Right_View, grayImageRight);
 
     aaw_opencv::MoveRobot moveSrv;
-    moveSrv.request.x = controlVel(0);
-    moveSrv.request.y = controlVel(1);
-    moveSrv.request.z = controlVel(2);
-    moveSrv.request.a = controlVel(3);
-    moveSrv.request.b = controlVel(4);
-    moveSrv.request.c = controlVel(5);
+    moveSrv.request.vx = cameraVel(0);
+    moveSrv.request.vy = cameraVel(1);
+    moveSrv.request.vz = cameraVel(2);
+    moveSrv.request.wx = cameraVel(3);
+    moveSrv.request.wy = cameraVel(4);
+    moveSrv.request.wz = cameraVel(5);
     ros::ServiceClient client = (ros::ServiceClient)*moveClientPtr;
     if (client.call(moveSrv)) {
         ROS_INFO("Feedback from server: %d", moveSrv.response.ExecStatus);

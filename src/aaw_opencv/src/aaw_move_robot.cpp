@@ -15,11 +15,11 @@
 //     ros::ServiceServer moveRobotService_;
 //     AAWTCPServer myTCPServer_;
 
-//     bool serviceCallback(aaw_opencv::MoveRobotRequest& requestPos, aaw_opencv::MoveRobotResponse& execStatus);
+//     bool serviceCallback(aaw_opencv::MoveRobotRequest& requestCamVel, aaw_opencv::MoveRobotResponse& execStatus);
 // };
 
 #include "aaw_move_robot.h"
- 
+
 AAWMoveRobotClass::AAWMoveRobotClass(ros::NodeHandle* nodehandle):nh_(*nodehandle)
 {
     ROS_INFO("in class constructor of AAWMoveRobotClass");
@@ -30,24 +30,34 @@ AAWMoveRobotClass::AAWMoveRobotClass(ros::NodeHandle* nodehandle):nh_(*nodehandl
     myTCPServerPtr_->setVelAcc(velAcc);
     myTCPServerPtr_->waitUntilConnected();
     std::cout<<"Client connected!\n";
+    while (!(myTCPServerPtr_->enableRobot()))
+        sleep(1);
+    std::cout<<"Robot enabled!\n";
+    std::vector<float> originalCtrlVal{-29, -4.45, 680, -0.5, 1.2, 0.4};
+    while(!(myTCPServerPtr_->move(originalCtrlVal)))
+        sleep(1);
+    std::cout<<"Moved to original pos!\n";
+    coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal);
 }
 
-bool AAWMoveRobotClass::serviceCallback(aaw_opencv::MoveRobotRequest& requestPos, aaw_opencv::MoveRobotResponse& execStatus)
+bool AAWMoveRobotClass::serviceCallback(aaw_opencv::MoveRobotRequest& requestCamVel, aaw_opencv::MoveRobotResponse& execStatus)
 {
     ROS_INFO("callback activated");
-    std::vector<float> pos;
-    pos.push_back(requestPos.x);
-    pos.push_back(requestPos.y);
-    pos.push_back(requestPos.z);
-    pos.push_back(requestPos.a);
-    pos.push_back(requestPos.b);
-    pos.push_back(requestPos.c);
+    Eigen::Matrix<float, 6, 1> camVel;
+    camVel(0) = requestCamVel.vx;
+    camVel(1) = requestCamVel.vy;
+    camVel(2) = requestCamVel.vz;
+    camVel(3) = requestCamVel.wx;
+    camVel(4) = requestCamVel.wy;
+    camVel(5) = requestCamVel.wz;
+    std::cout<<"camVel received: \n";
 
-    std::cout<<"pos received: \n";
-    execStatus.ExecStatus = myTCPServerPtr_->move(pos);
-    std::cout<<"Moved to pos:\n";
+    std::vector<float> ctrlVal;
+    ctrlVal = coordTransformerPtr_->getCtrlVal(camVel);
+    execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal);
+    std::cout<<"Moved to ctrlVal:\n";
     for (size_t i = 0; i < 6; ++i)
-        std::cout<<pos[i]<<"\n";
+        std::cout<<ctrlVal[i]<<"\n";
     
     return true;
 }
@@ -66,16 +76,16 @@ int AAWMoveRobotClass::AAWDisableRobot()
     std::cout<<"Robot disabled!\n";
 }
 
-// bool callback(aaw_opencv::MoveRobotRequest& requestPos, aaw_opencv::MoveRobotResponse& execStatus)
+// bool callback(aaw_opencv::MoveRobotRequest& requestCamVel, aaw_opencv::MoveRobotResponse& execStatus)
 // {
 //     ROS_INFO("callback activated");
 //     std::vector<float> pos;
-//     pos.push_back(requestPos.x);
-//     pos.push_back(requestPos.y);
-//     pos.push_back(requestPos.z);
-//     pos.push_back(requestPos.a);
-//     pos.push_back(requestPos.b);
-//     pos.push_back(requestPos.c);
+//     pos.push_back(requestCamVel.x);
+//     pos.push_back(requestCamVel.y);
+//     pos.push_back(requestCamVel.z);
+//     pos.push_back(requestCamVel.a);
+//     pos.push_back(requestCamVel.b);
+//     pos.push_back(requestCamVel.c);
 
 //     std::cout<<"pos received: \n";
 //     for (size_t i = 0; i < 6; ++i)
