@@ -18,7 +18,7 @@
 class AAWCoordTransform
 {
 public:
-    explicit AAWCoordTransform(std::vector<float> &originalCtrlVal);
+    AAWCoordTransform(std::vector<float> &originalCtrlVal);
     std::vector<float> getCtrlVal(Eigen::Matrix<float, 6, 1> cameraVel);
 
 private:

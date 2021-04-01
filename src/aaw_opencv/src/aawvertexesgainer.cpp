@@ -2,25 +2,23 @@
 
 //静态成员变量，所有类对象共享
 
-const int AawVertexesGainer::windowSize4Fitting_LeftBoundary_ = 80;
-const int AawVertexesGainer::windowSize4Fitting_RightBoundary_ = 80;
-const int AawVertexesGainer::windowSize4Fitting_UpBoundary_ = 100;
-const int AawVertexesGainer::windowSize4Fitting_DownBoundary_ = 100;
-const float AawVertexesGainer::antiReflectThreshold_Left_ = 8.0;
-const float AawVertexesGainer::antiReflectThreshold_Right_ = 8.0;
-const float AawVertexesGainer::antiReflectThreshold_Up_ = 5.0;
-const float AawVertexesGainer::antiReflectThreshold_Down_ = 5.0;
-const int AawVertexesGainer::exceptionStartPos_Down_ = 1100;
+const int AAWVertexesGainer::windowSize4Fitting_LeftBoundary_ = 80;
+const int AAWVertexesGainer::windowSize4Fitting_RightBoundary_ = 80;
+const int AAWVertexesGainer::windowSize4Fitting_UpBoundary_ = 100;
+const int AAWVertexesGainer::windowSize4Fitting_DownBoundary_ = 100;
+const float AAWVertexesGainer::antiReflectThreshold_Left_ = 8.0;
+const float AAWVertexesGainer::antiReflectThreshold_Right_ = 8.0;
+const float AAWVertexesGainer::antiReflectThreshold_Up_ = 5.0;
+const float AAWVertexesGainer::antiReflectThreshold_Down_ = 5.0;
+const int AAWVertexesGainer::exceptionStartPos_Down_ = 1100;
 
 
 //公有成员函数
 
-AawVertexesGainer::AawVertexesGainer()
-{
+AAWVertexesGainer::AAWVertexesGainer()
+= default;
 
-}
-
-AawVertexesGainer::AawVertexesGainer(cv::Mat & image)
+AAWVertexesGainer::AAWVertexesGainer(cv::Mat & image)
 {
     int iRows;
     int cRows;
@@ -45,21 +43,21 @@ AawVertexesGainer::AawVertexesGainer(cv::Mat & image)
 
     //先找两条竖直边界线，干扰较小
     cv::Mat imageTransposed = image.t();
-    approachingLine_Left = getApproachingLine(imageTransposed, 1, ROIBoundaries4Left[0], ROIBoundaries4Left[1], 0, 0);
-    approachingLine_Right = getApproachingLine(imageTransposed, 0, ROIBoundaries4Right[0], ROIBoundaries4Right[1], 0, 0);
+    approachingLine_Left = getApproachingLine(imageTransposed, true, ROIBoundaries4Left[0], ROIBoundaries4Left[1], false, 0);
+    approachingLine_Right = getApproachingLine(imageTransposed, false, ROIBoundaries4Right[0], ROIBoundaries4Right[1], false, 0);
 
     ROIBoundaries4Up[0] = (3*approachingLine_Left + approachingLine_Right)/4;
     ROIBoundaries4Up[1] = (approachingLine_Left + 3*approachingLine_Right)/4;
     ROIBoundaries4Down[0] = approachingLine_Left;
     ROIBoundaries4Down[1] = approachingLine_Right;
 
-    approachingLine_Up = getApproachingLine(image, 1, ROIBoundaries4Up[0], ROIBoundaries4Up[1], 0, 0);
-    approachingLine_Down = getApproachingLine(image, 0, ROIBoundaries4Down[0], ROIBoundaries4Down[1], 1, exceptionStartPos_Down_);
+    approachingLine_Up = getApproachingLine(image, true, ROIBoundaries4Up[0], ROIBoundaries4Up[1], false, 0);
+    approachingLine_Down = getApproachingLine(image, false, ROIBoundaries4Down[0], ROIBoundaries4Down[1], true, exceptionStartPos_Down_);
 
-    leftBoundary_ = myLineFitting(image, approachingLine_Left, 1, ROIBoundaries4Left[0], ROIBoundaries4Left[1], windowSize4Fitting_LeftBoundary_, 0, antiReflectThreshold_Left_);
-    rightBoundary_ = myLineFitting(image, approachingLine_Right, 0, ROIBoundaries4Right[0], ROIBoundaries4Right[1], windowSize4Fitting_RightBoundary_, 1, antiReflectThreshold_Right_);
-    upBoundary_ = getTransposedLine(myLineFitting(imageTransposed, approachingLine_Up, 1, ROIBoundaries4Up[0], ROIBoundaries4Up[1], windowSize4Fitting_UpBoundary_, 0, antiReflectThreshold_Up_));
-    downBoundary_ = getTransposedLine(myLineFitting(imageTransposed, approachingLine_Down, 0, ROIBoundaries4Down[0], ROIBoundaries4Down[1], windowSize4Fitting_DownBoundary_, 1, antiReflectThreshold_Down_));
+    leftBoundary_ = myLineFitting(image, approachingLine_Left, true, ROIBoundaries4Left[0], ROIBoundaries4Left[1], windowSize4Fitting_LeftBoundary_, false, antiReflectThreshold_Left_);
+    rightBoundary_ = myLineFitting(image, approachingLine_Right, false, ROIBoundaries4Right[0], ROIBoundaries4Right[1], windowSize4Fitting_RightBoundary_, true, antiReflectThreshold_Right_);
+    upBoundary_ = getTransposedLine(myLineFitting(imageTransposed, approachingLine_Up, true, ROIBoundaries4Up[0], ROIBoundaries4Up[1], windowSize4Fitting_UpBoundary_, false, antiReflectThreshold_Up_));
+    downBoundary_ = getTransposedLine(myLineFitting(imageTransposed, approachingLine_Down, false, ROIBoundaries4Down[0], ROIBoundaries4Down[1], windowSize4Fitting_DownBoundary_, true, antiReflectThreshold_Down_));
 
     vertexes_.push_back(calcIntersectionPointOf2Lines(leftBoundary_, upBoundary_));
     vertexes_.push_back(calcIntersectionPointOf2Lines(leftBoundary_, downBoundary_));
@@ -69,12 +67,10 @@ AawVertexesGainer::AawVertexesGainer(cv::Mat & image)
     showInformatIon(image);
 }
 
-AawVertexesGainer::~AawVertexesGainer()
-{
+AAWVertexesGainer::~AAWVertexesGainer()
+= default;
 
-}
-
-std::vector<cv::Point2f> AawVertexesGainer::get4Vertexes() const
+std::vector<cv::Point2f> AAWVertexesGainer::get4Vertexes() const
 {
     return vertexes_;
 }
@@ -93,7 +89,7 @@ std::vector<cv::Point2f> AawVertexesGainer::get4Vertexes() const
  * @param exceptionStartPos 该行号以外的区域都不包含在ROI内。
  * @return 返回找到的直线在输入图像中的行号。
  */
-int AawVertexesGainer::getApproachingLine(cv::Mat &image, bool upLine, int startColROI, int endColROI, bool posExcept, int exceptionStartPos)
+int AAWVertexesGainer::getApproachingLine(cv::Mat &image, bool upLine, int startColROI, int endColROI, bool posExcept, int exceptionStartPos)
 {
     int iRows = image.rows;
     int cRows = iRows/2;
@@ -109,7 +105,7 @@ int AawVertexesGainer::getApproachingLine(cv::Mat &image, bool upLine, int start
     //创建图像ROI，之后直接用Mat::Row(int)提取感兴趣的行即可，均为O(1)复杂度(最小)
     cv::Mat imageROI = image.colRange(startColROI, endColROI+1).clone();
     cv::Mat rowsDiffer;
-    unsigned long long sumPixelDiffer = 0, sumMax = 0;
+    unsigned long long sumPixelDiffer, sumMax = 0;
 
     int roughLine = cRows;
 
@@ -150,7 +146,7 @@ int AawVertexesGainer::getApproachingLine(cv::Mat &image, bool upLine, int start
  * @param antiReflectThreshold 为消除反光设置的阈值，即认为偏离几个像素时提取的点是受反光影响的误差点。
  * @return 返回在输入图像坐标系下定义的cv::Vec4f类型直线参数。
  */
-cv::Vec4f AawVertexesGainer::myLineFitting(cv::Mat &image, int originalLineCol, bool leftLine, int startRow, int endRow, int windowSize, bool blockLeft, float antiReflectThreshold)
+cv::Vec4f AAWVertexesGainer::myLineFitting(cv::Mat &image, int originalLineCol, bool leftLine, int startRow, int endRow, int windowSize, bool blockLeft, float antiReflectThreshold)
 {
     cv::Vec4f fittedLineInitial, fittedLineUltimate;
     std::vector<cv::Point2f> selectedPointsInitial, selectedPointsUltimate, initFittedLinePoints;
@@ -177,7 +173,7 @@ cv::Vec4f AawVertexesGainer::myLineFitting(cv::Mat &image, int originalLineCol, 
     compareWindowSize = colRangeRight - colRangeLeft - 1;
 
     cv::Mat imageROI = imageROIOriginal.colRange(colRangeLeft, colRangeRight);
-    int pixelDiffer = 0, pixelDifferMax = 0;
+    int pixelDiffer, pixelDifferMax = 0;
     uchar * pixel;
     cv::Point2f MaxGrayGradientPoint;
 
@@ -200,14 +196,14 @@ cv::Vec4f AawVertexesGainer::myLineFitting(cv::Mat &image, int originalLineCol, 
     initFittedLinePoints = calcPointsThroughLine(fittedLineInitial, selectedPointsInitial.size());
     if (blockLeft) {
         for (int row = 0; row <= endRow - startRow; ++row) {
-            if (!((initFittedLinePoints[row].x - selectedPointsInitial[row].x) > antiReflectThreshold)) {
+            if ((initFittedLinePoints[row].x - selectedPointsInitial[row].x) <= antiReflectThreshold) {
                 selectedPointsUltimate.push_back(selectedPointsInitial[row]);
             }
         }
     }
     else {
         for (int row = 0; row <= endRow - startRow; ++row) {
-            if (!((selectedPointsInitial[row].x - initFittedLinePoints[row].x) > antiReflectThreshold)) {
+            if ((selectedPointsInitial[row].x - initFittedLinePoints[row].x) <= antiReflectThreshold) {
                 selectedPointsUltimate.push_back(selectedPointsInitial[row]);
             }
         }
@@ -215,7 +211,7 @@ cv::Vec4f AawVertexesGainer::myLineFitting(cv::Mat &image, int originalLineCol, 
     cv::fitLine(selectedPointsUltimate, fittedLineUltimate, cv::DIST_HUBER, 0, 0.01, 0.01);
 
     //补偿因选定ROI造成的坐标偏移量
-    fittedLineUltimate[2] += (colRangeLeft);
+    fittedLineUltimate[2] += colRangeLeft;
     fittedLineUltimate[3] += startRow;
 
     return fittedLineUltimate;
@@ -227,7 +223,7 @@ cv::Vec4f AawVertexesGainer::myLineFitting(cv::Mat &image, int originalLineCol, 
  * @param yCount 总共需要计算的点数量，纵坐标从0开始，步长1。
  * @return 返回std::vector<cv::Point2f>的直线上的点的集合。
  */
-std::vector<cv::Point2f> AawVertexesGainer::calcPointsThroughLine(cv::Vec4f inputLine, unsigned int yCount)
+std::vector<cv::Point2f> AAWVertexesGainer::calcPointsThroughLine(cv::Vec4f inputLine, unsigned int yCount)
 {
     std::vector<cv::Point2f> pointsThroughLine;
     float k = inputLine[1]/inputLine[0];
@@ -247,7 +243,7 @@ std::vector<cv::Point2f> AawVertexesGainer::calcPointsThroughLine(cv::Vec4f inpu
  * @param inputLine cv::Vec4f的直线参数。
  * @return 返回经转置后的cv::Vec4f的直线参数。
  */
-cv::Vec4f AawVertexesGainer::getTransposedLine(cv::Vec4f inputLine)
+cv::Vec4f AAWVertexesGainer::getTransposedLine(cv::Vec4f inputLine)
 {
     cv::Vec4f lineTransposed;
 
@@ -265,7 +261,7 @@ cv::Vec4f AawVertexesGainer::getTransposedLine(cv::Vec4f inputLine)
  * @param line2 输入类型为cv::Vec4f的直线2参数。
  * @return 返回cv::Point2f类型的交点坐标。
  */
-cv::Point2f AawVertexesGainer::calcIntersectionPointOf2Lines(cv::Vec4f line1, cv::Vec4f line2)
+cv::Point2f AAWVertexesGainer::calcIntersectionPointOf2Lines(cv::Vec4f line1, cv::Vec4f line2)
 {
     float k1, k2, b1, b2, xIntersection, yIntersection;
 
@@ -286,7 +282,7 @@ cv::Point2f AawVertexesGainer::calcIntersectionPointOf2Lines(cv::Vec4f line1, cv
  * @brief AawVertexesGainer::showInformatIon 将获取的边界、顶点和坐标实时显示在图片上。
  * @param image
  */
-void AawVertexesGainer::showInformatIon(cv::Mat &image)
+void AAWVertexesGainer::showInformatIon(cv::Mat &image)
 {
     std::string textCoordinate;
     textCoordinate += "P0 : (";

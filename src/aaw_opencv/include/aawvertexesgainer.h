@@ -10,13 +10,13 @@
  * @brief The AawVertexesGainer class
  * @note 输入的图像应该是经过畸变校正、降噪的灰度图。
  */
-class AawVertexesGainer
+class AAWVertexesGainer
 {
 public:
 
-    AawVertexesGainer();
-    AawVertexesGainer(cv::Mat & image);
-    ~AawVertexesGainer();
+    AAWVertexesGainer();
+    AAWVertexesGainer(cv::Mat & image);
+    ~AAWVertexesGainer();
     std::vector<cv::Point2f> get4Vertexes() const;
 
 private:

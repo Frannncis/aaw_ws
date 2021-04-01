@@ -32,19 +32,18 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
         return;
     }
     
-    AawVertexesGainer vg4Left, vg4Right;
-    Eigen::VectorXd cameraVel;
-    AawIBVS ibvs(AawIBVS::SN11818179);
+    AAWVertexesGainer vg4Left, vg4Right;
+    Eigen::VectorXf cameraVel;
+    AAWIBVS ibvs(AAWIBVS::SN11818179);
     cv::Mat grayImageLeft, grayImageRight;
     cv::cvtColor(cv_ptr_left->image, grayImageLeft, cv::COLOR_BGR2GRAY);
     cv::cvtColor(cv_ptr_right->image, grayImageRight, cv::COLOR_BGR2GRAY);
     cv::GaussianBlur(grayImageLeft, grayImageLeft, cv::Size(3,3),0,0);
     cv::GaussianBlur(grayImageRight, grayImageRight, cv::Size(3,3),0,0);
-    vg4Left = AawVertexesGainer(grayImageLeft);
-    vg4Right = AawVertexesGainer(grayImageRight);
+    vg4Left = AAWVertexesGainer(grayImageLeft);
+    vg4Right = AAWVertexesGainer(grayImageRight);
     ibvs.updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
-    ibvs.updateControlLaw();
-    cameraVel = ibvs.getControlVel();
+    cameraVel = ibvs.getCamCtrlVel();
     std::cout<<"Control velocity:\n"<<cameraVel<<std::endl;
     cv::imshow(Left_View, grayImageLeft);
     cv::imshow(Right_View, grayImageRight);

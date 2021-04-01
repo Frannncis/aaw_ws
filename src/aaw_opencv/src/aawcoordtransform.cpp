@@ -4,6 +4,8 @@
  * @brief 以下3个值为相机左视野坐标系相对于并联机构动平台坐标系的3个偏置量，定义见手稿。
  * 为保持与并联机构控制量的单位一致，其单位取为mm。
  */
+
+//------------------------Need to be measured!!!-------------------------
 const float AAWCoordTransform::offset_CFvsRF_X = 50;
 const float AAWCoordTransform::offset_CFvsRF_Y = 200;
 const float AAWCoordTransform::offset_CFvsRF_Z = 400;
