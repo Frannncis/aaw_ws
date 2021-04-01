@@ -5,15 +5,15 @@
 <remap from="image" to="/zedm/zed_node/left/image_rect_gray"/>
 </node>-->
 
-<!--<node pkg="aaw_opencv" type="aaw_vertexes_tracker" name="aaw_vertexes_tracker_left" output="screen">
+<!--<node pkg="aaw_ros" type="aaw_visualServo" name="aaw_visualServo_left" output="screen">
 <remap from="simple_camera/image_raw" to="/zedm/zed_node/left/image_rect_gray"/>
 </node>
 
-<node pkg="aaw_opencv" type="aaw_vertexes_tracker" name="aaw_vertexes_tracker_right" output="screen">
+<node pkg="aaw_ros" type="aaw_visualServo" name="aaw_visualServo_right" output="screen">
 <remap from="simple_camera/image_raw" to="/zedm/zed_node/right/image_rect_gray"/>
 </node>-->
 
-<node pkg="aaw_opencv" type="aaw_vertexes_tracker" name="aaw_vertexes_tracker_double" output="screen">
+<node pkg="aaw_ros" type="aaw_visualServo" name="aaw_visualServo_doubleView" output="screen">
 <remap from="/image_raw/left" to="/zedm/zed_node/left/image_rect_gray"/>
 <remap from="/image_raw/right" to="/zedm/zed_node/right/image_rect_gray"/>
 </node>

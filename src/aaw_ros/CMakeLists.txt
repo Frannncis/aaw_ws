@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(aaw_opencv)
+project(aaw_ros)
 
 add_compile_options(-std=c++11)
 
@@ -39,23 +39,15 @@ catkin_simple()
 
 # Executables: uncomment the following and edit arguments to compile new nodes
 # may add more of these lines for more nodes from the same package
-cs_add_executable(aaw_find_red_pixels src/aaw_find_red_pixels.cpp)
-cs_add_executable(aaw_find_features src/aaw_find_features.cpp)
-cs_add_executable(aaw_find_connected_components src/aaw_find_connected_components.cpp)
-cs_add_executable(aaw_image_processer src/aaw_image_processer.cpp)
-cs_add_executable(aaw_vertexes_tracker src/aaw_vertexes_tracker.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
-cs_add_executable(aaw_move_robot src/aaw_move_robot.cpp src/aawtcpserver.cpp src/aawcoordtransform.cpp)
+cs_add_executable(aaw_visualServo src/aaw_visualServo.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
+cs_add_executable(aaw_moveRobotServer src/aaw_moveRobotServer.cpp src/aawtcpserver.cpp src/aawcoordtransform.cpp)
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package
 # target_link_libraries(example my_lib)
 
-target_link_libraries( aaw_find_red_pixels ${OpenCV_LIBS})
-target_link_libraries( aaw_find_features ${OpenCV_LIBS})
-target_link_libraries( aaw_find_connected_components ${OpenCV_LIBS})
-target_link_libraries( aaw_image_processer ${OpenCV_LIBS})
-target_link_libraries( aaw_vertexes_tracker ${OpenCV_LIBS})
-target_link_libraries( aaw_move_robot libjsoncpp.a)
+target_link_libraries( aaw_visualServo ${OpenCV_LIBS})
+target_link_libraries( aaw_moveRobotServer libjsoncpp.a)
 
 cs_install()
 cs_export()

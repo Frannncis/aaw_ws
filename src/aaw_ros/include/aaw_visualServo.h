@@ -1,8 +1,8 @@
-#ifndef AAW_MOVE_ROBOT_CLASS_H_
-#define AAW_MOVE_ROBOT_CLASS_H_
+#ifndef AAW_VISUAL_SERVO_H_
+#define AAW_VISUAL_SERVO_H_
 
 #include <ros/ros.h>
-#include "aaw_opencv/MoveRobot.h"
+#include "aaw_ros/MoveRobot.h"
 #include <iostream>
 #include <vector>
 #include "aawtcpserver.h"
@@ -21,7 +21,7 @@ private:
     AAWTCPServer *myTCPServerPtr_;
     AAWCoordTransform *coordTransformerPtr_;
 
-    bool serviceCallback(aaw_opencv::MoveRobotRequest& requestPos, aaw_opencv::MoveRobotResponse& execStatus);
+    bool serviceCallback(aaw_ros::MoveRobotRequest& requestPos, aaw_ros::MoveRobotResponse& execStatus);
 };
 
 #endif

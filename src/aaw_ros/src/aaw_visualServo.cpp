@@ -9,7 +9,7 @@
 #include <message_filters/time_synchronizer.h>
 #include <Eigen/Dense>
 #include "aawibvs.h"
-#include <aaw_opencv/MoveRobot.h>
+#include <aaw_ros/MoveRobot.h>
 #include <boost/bind.hpp>
 
 static const std::string Left_View = "Left View";
@@ -20,6 +20,7 @@ using namespace sensor_msgs;
 using namespace message_filters;
 
 ros::ServiceClient *moveClientPtr;
+AAWIBVS *ibvsPtr;
 
 //image comes in as a ROS message, but gets converted to an OpenCV type
 void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::ImageConstPtr& rightImage) {
@@ -34,7 +35,6 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     
     AAWVertexesGainer vg4Left, vg4Right;
     Eigen::VectorXf cameraVel;
-    AAWIBVS ibvs(AAWIBVS::SN11818179);
     cv::Mat grayImageLeft, grayImageRight;
     cv::cvtColor(cv_ptr_left->image, grayImageLeft, cv::COLOR_BGR2GRAY);
     cv::cvtColor(cv_ptr_right->image, grayImageRight, cv::COLOR_BGR2GRAY);
@@ -42,13 +42,13 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     cv::GaussianBlur(grayImageRight, grayImageRight, cv::Size(3,3),0,0);
     vg4Left = AAWVertexesGainer(grayImageLeft);
     vg4Right = AAWVertexesGainer(grayImageRight);
-    ibvs.updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
-    cameraVel = ibvs.getCamCtrlVel();
+    ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
+    cameraVel = ibvsPtr->getCamCtrlVel();
     std::cout<<"Control velocity:\n"<<cameraVel<<std::endl;
     cv::imshow(Left_View, grayImageLeft);
     cv::imshow(Right_View, grayImageRight);
 
-    aaw_opencv::MoveRobot moveSrv;
+    aaw_ros::MoveRobot moveSrv;
     moveSrv.request.vx = cameraVel(0);
     moveSrv.request.vy = cameraVel(1);
     moveSrv.request.vz = cameraVel(2);
@@ -67,7 +67,7 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "vertexes_tracker");
+    ros::init(argc, argv, "aaw_visualServo");
     ros::NodeHandle nh_;
 
     message_filters::Subscriber<sensor_msgs::Image> left_image_sub_(nh_, "/image_raw/left", 1);
@@ -75,8 +75,10 @@ int main(int argc, char** argv) {
     TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image> sync(left_image_sub_, right_image_sub_, 10);
     sync.registerCallback(boost::bind(&imageCb, _1, _2));
 
-    ros::ServiceClient moveClient = nh_.serviceClient<aaw_opencv::MoveRobot>("move_robot_to_pos");
+    ros::ServiceClient moveClient = nh_.serviceClient<aaw_ros::MoveRobot>("move_robot_to_pos");
     moveClientPtr = &moveClient;
+
+    ibvsPtr = new AAWIBVS(AAWIBVS::SN11818179);
 
     cv::namedWindow(Left_View, cv::WINDOW_NORMAL);
     cv::resizeWindow(Left_View, 800, 450);

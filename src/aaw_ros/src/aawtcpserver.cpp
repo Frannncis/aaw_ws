@@ -227,8 +227,10 @@ AAWTCPServer::~AAWTCPServer() {
  */
 void AAWTCPServer::waitUntilConnected() {
     clientAddrLen_ = sizeof(clientAddr_);
+    std::cout<<"Waiting for client connection...\n";
     //由于setsockopt设置的超时时间对accept也生效,而又希望accept阻塞,直到有客户端连接上,所以这里循环等待.
     while ((clientSock_ = accept(serverSock_, (sockaddr *)&serverAddr_, &clientAddrLen_)) == -1) ;
+    std::cout<<"Client connected!\n";
 }
 
 /**
