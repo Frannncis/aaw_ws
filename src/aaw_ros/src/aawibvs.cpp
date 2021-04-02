@@ -1,6 +1,7 @@
 ﻿#include "aawibvs.h"
 
 const float AAWIBVS::lambda_ = 0.5;
+const float AAWIBVS::sumOfErrorVecElementsAbs_Threshold_ = 0.002;   //实验数据显示的较为合适的值
 const unsigned int AAWIBVS::pointsNumber_ = 4;
 const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 50;
 
@@ -34,12 +35,30 @@ void AAWIBVS::updateVertexesCoordinates(std::vector<cv::Point2f> vertexesLeft, s
 }
 
 /**
+ * @brief IBVS::updateControlLaw 更新控制法则，即根据新输入的特征点的像素坐标计算新的控制速度。
+ * @note 用户在更新特征点坐标后，需要手动调用改函数才能调用别的公有函数，否则值不会更新。
+ */
+void AAWIBVS::updateControlLaw()
+{
+    std::vector<cv::Point2f> currentCoordsOnNP;
+    for (unsigned int i = 0; i < pointsNumber_; ++i) {
+        currentCoordsOnNP.push_back(getCurrentCoordinatesOnNormalizedPlane(currentVertexes_LeftView_Pixel_[i]));
+    }
+    Eigen::VectorXf errorVector = calcErrorVector(currentCoordsOnNP);
+    std::vector<float> pointsDepthInCF;
+    for (unsigned int i = 0; i < pointsNumber_; ++i) {
+        pointsDepthInCF.push_back(estimateDepthInCameraFrame(currentVertexes_LeftView_Pixel_[i], currentVertexes_RightView_Pixel_[i]));
+    }
+    Eigen::MatrixXf featureJacobianMatrix = calcFeatureJacobianMatrix(currentCoordsOnNP, pointsDepthInCF);
+    calcCamCtrlVel(featureJacobianMatrix, errorVector);
+}
+
+/**
  * @brief IBVS::getCamCtrlVel 返回相机的速度控制量。
- * @return
+ * @return 相机的控制速度。
  */
 Eigen::Matrix<float, 6, 1> AAWIBVS::getCamCtrlVel()
 {
-    updateControlLaw();
     return camCtrlVel_;
 }
 
@@ -70,6 +89,18 @@ void AAWIBVS::measureDesiredCoordsOnNP() {
     }
 }
 
+/**
+ * 返回是否伺服至期望位姿的判断结果，通过camCtrlVel的元素和小于某个阈值来判断，阈值由实验获得。
+ * @return 是否到达期望位姿的判定结果。
+ */
+bool AAWIBVS::isDesiredPosArrived() {
+    std::cout<<"sum of abs error vector elements: "<<sumOfErrorVecElementsAbs_<<"\n";
+    if (sumOfErrorVecElementsAbs_ < sumOfErrorVecElementsAbs_Threshold_)
+        return true;
+    else
+        return false;
+}
+
 //private member functions
 
 void AAWIBVS::initIBVS(CameraSerialNumber SN)
@@ -79,6 +110,7 @@ void AAWIBVS::initIBVS(CameraSerialNumber SN)
     for (unsigned int i = 0; i < pointsNumber_; ++i) {
         desiredCoordsOnNP_sum_.push_back(cv::Point2f(0, 0));
     }
+    sumOfErrorVecElementsAbs_ = 0;
 }
 
 /**
@@ -134,24 +166,6 @@ void AAWIBVS::setDesiredCoordinatesOnNormalizedPlane(CameraSerialNumber SN)
 }
 
 /**
- * @brief IBVS::updateControlLaw 更新控制法则，即根据新输入的特征点的像素坐标计算新的控制速度。
- */
-void AAWIBVS::updateControlLaw()
-{
-    std::vector<cv::Point2f> currentCoordsOnNP;
-    for (unsigned int i = 0; i < pointsNumber_; ++i) {
-        currentCoordsOnNP.push_back(getCurrentCoordinatesOnNormalizedPlane(currentVertexes_LeftView_Pixel_[i]));
-    }
-    Eigen::VectorXf errorVector = calcErrorVector(currentCoordsOnNP);
-    std::vector<float> pointsDepthInCF;
-    for (unsigned int i = 0; i < pointsNumber_; ++i) {
-        pointsDepthInCF.push_back(estimateDepthInCameraFrame(currentVertexes_LeftView_Pixel_[i], currentVertexes_RightView_Pixel_[i]));
-    }
-    Eigen::MatrixXf featureJacobianMatrix = calcFeatureJacobianMatrix(currentCoordsOnNP, pointsDepthInCF);
-    calcCamCtrlVel(featureJacobianMatrix, errorVector);
-}
-
-/**
  * @brief IBVS::estimateDepthInCameraFrame 由双目相机观察点的视差估计其深度。
  * @param pointCoordInLeftView 特征点在相机左侧视野中的像素坐标。
  * @param pointCoordInRightView 特征点在相机右侧视野中的像素坐标。
@@ -192,6 +206,12 @@ Eigen::VectorXf AAWIBVS::calcErrorVector(std::vector<cv::Point2f> currentPointsC
         errorVector(2*i) = currentPointsCoordinates_LeftView_NormalizedPlane[i].x - desiredPointsCoordinates_LeftView_NormalizedPlane_[i].x;
         errorVector(2*i+1) = currentPointsCoordinates_LeftView_NormalizedPlane[i].y - desiredPointsCoordinates_LeftView_NormalizedPlane_[i].y;
     }
+
+    sumOfErrorVecElementsAbs_ = 0;
+    for (unsigned int i = 0; i < errorVector.size(); ++i) {
+        sumOfErrorVecElementsAbs_ += std::abs(errorVector(i));
+    }
+
     return errorVector;
 }
 

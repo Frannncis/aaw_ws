@@ -21,10 +21,10 @@ namespace CameraSN11818179 {
     const float baseLine = 0.0630536;
 
     //----------------------Need to be measured!!!----------------------------------------
-    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_0(-0.329412, -0.247962);
-    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_1(-0.314639, 0.273636);
-    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_2(0.735933, 0.260152);
-    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_3(0.733608, -0.268959);
+    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_0(-0.322926, -0.283863);
+    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_1(-0.318915, 0.236184);
+    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_2(0.727932, 0.235642);
+    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_3(0.726199, -0.290058);
 }
 
 namespace CameraSN16988350 {
@@ -49,11 +49,14 @@ public:
     AAWIBVS();
     AAWIBVS(CameraSerialNumber SN);
     void updateVertexesCoordinates(std::vector<cv::Point2f> vertexesLeft, std::vector<cv::Point2f> vertexesRight);
+    void updateControlLaw();
     Eigen::Matrix<float, 6, 1> getCamCtrlVel();
     void measureDesiredCoordsOnNP();
+    bool isDesiredPosArrived();
 
 private:
     static const float lambda_;
+    static const float sumOfErrorVecElementsAbs_Threshold_;
     static const unsigned int pointsNumber_;
     static const unsigned int desiredCoordsAccumMaxTimes_;
 
@@ -66,11 +69,12 @@ private:
     Eigen::Matrix<float, 6, 1> camCtrlVel_;
     std::vector<cv::Point2f> desiredCoordsOnNP_sum_;
     unsigned int desiredCoordsAccumCount_;
+    float sumOfErrorVecElementsAbs_;
 
     void initIBVS(CameraSerialNumber SN);
     void setCameraIntrinsics(CameraSerialNumber SN);
     void setDesiredCoordinatesOnNormalizedPlane(CameraSerialNumber SN);
-    void updateControlLaw();
+
     float estimateDepthInCameraFrame(cv::Point2f pointCoordInLeftView, cv::Point2f pointCoordInRightView);
     cv::Point2f getCurrentCoordinatesOnNormalizedPlane(cv::Point2f& pointCoordInLeftView);
     Eigen::VectorXf calcErrorVector(std::vector<cv::Point2f> currentPointsCoordinates_LeftView_NormalizedPlane);

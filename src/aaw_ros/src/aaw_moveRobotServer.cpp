@@ -8,10 +8,9 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     std::vector<float> velAcc{3, 5, 5, 10};
     myTCPServerPtr_->setVelAcc(velAcc);
     myTCPServerPtr_->waitUntilConnected();
-    while (!(myTCPServerPtr_->enableRobot()))
-        sleep(1);
+    AAWEnableRobot();
     std::cout<<"Robot enabled!\n";
-    std::vector<float> originalCtrlVal{-26.4, 4.18, 699.5, 0.5, 2.1, 1.2};
+    std::vector<float> originalCtrlVal{-11.41949, -10.42905, 681.59697, 5.97, 0.38830, 0.10055};
     while(!(myTCPServerPtr_->move(originalCtrlVal)))
         sleep(1);
     std::cout<<"Moved to original pos!\n";

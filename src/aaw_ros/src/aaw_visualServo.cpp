@@ -38,7 +38,9 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     vg4Left = AAWVertexesGainer(grayImageLeft);
     vg4Right = AAWVertexesGainer(grayImageRight);
     ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
+    ibvsPtr->updateControlLaw();
     cameraVel = ibvsPtr->getCamCtrlVel();
+    ibvsPtr->isDesiredPosArrived();
     std::cout<<"Control velocity:\n"<<cameraVel<<std::endl;
     cv::imshow(Left_View, grayImageLeft);
     cv::imshow(Right_View, grayImageRight);
