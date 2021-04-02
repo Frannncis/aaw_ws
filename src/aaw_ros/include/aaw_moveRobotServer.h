@@ -14,6 +14,7 @@ public:
     AAWMoveRobotServer(ros::NodeHandle* nodehandle);
     int AAWEnableRobot();
     int AAWDisableRobot();
+    ~AAWMoveRobotServer();
 
 private:
     ros::NodeHandle nh_;

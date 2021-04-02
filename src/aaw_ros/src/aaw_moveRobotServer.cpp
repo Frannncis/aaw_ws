@@ -2,10 +2,9 @@
 
 AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehandle)
 {
-    ROS_INFO("In class constructor of AAWMoveRobotServer");
     moveRobotService_ = nh_.advertiseService("move_robot_to_pos", &AAWMoveRobotServer::serviceCallback, this);
     ROS_INFO("Ready to move robot.");
-    myTCPServerPtr_ = new AAWTCPServer(3000);   //没有写delete,暂时不知道放在哪里,反正只有一个对象,问题不大,后续再考虑
+    myTCPServerPtr_ = new AAWTCPServer(3000);
     std::vector<float> velAcc{3, 5, 5, 10};
     myTCPServerPtr_->setVelAcc(velAcc);
     myTCPServerPtr_->waitUntilConnected();
@@ -17,6 +16,12 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
         sleep(1);
     std::cout<<"Moved to original pos!\n";
     coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal);
+}
+
+AAWMoveRobotServer::~AAWMoveRobotServer()
+{
+    delete myTCPServerPtr_;
+    delete coordTransformerPtr_;
 }
 
 bool AAWMoveRobotServer::serviceCallback(aaw_ros::MoveRobotRequest& requestCamVel, aaw_ros::MoveRobotResponse& execStatus)
@@ -63,8 +68,6 @@ int main(int argc, char **argv)
     // ROS_INFO("Ready to move robot.");
 
     AAWMoveRobotServer amr(&nh);
-
-
     
     ros::spin();
 
