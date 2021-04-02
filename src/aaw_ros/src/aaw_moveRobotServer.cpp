@@ -11,7 +11,7 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     while (!(myTCPServerPtr_->enableRobot()))
         sleep(1);
     std::cout<<"Robot enabled!\n";
-    std::vector<float> originalCtrlVal{-29, -4.45, 680, -0.5, 1.2, 0.4};
+    std::vector<float> originalCtrlVal{-26.4, 4.18, 699.5, 0.5, 2.1, 1.2};
     while(!(myTCPServerPtr_->move(originalCtrlVal)))
         sleep(1);
     std::cout<<"Moved to original pos!\n";
@@ -26,7 +26,7 @@ AAWMoveRobotServer::~AAWMoveRobotServer()
 
 bool AAWMoveRobotServer::serviceCallback(aaw_ros::MoveRobotRequest& requestCamVel, aaw_ros::MoveRobotResponse& execStatus)
 {
-    ROS_INFO("Move robot service callback activated");
+    // ROS_INFO("Move robot service callback activated");
     Eigen::Matrix<float, 6, 1> camVel;
     camVel(0) = requestCamVel.vx;
     camVel(1) = requestCamVel.vy;
@@ -38,9 +38,9 @@ bool AAWMoveRobotServer::serviceCallback(aaw_ros::MoveRobotRequest& requestCamVe
     std::vector<float> ctrlVal;
     ctrlVal = coordTransformerPtr_->getCtrlVal(camVel);
     execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal);
-    std::cout<<"Moved to ctrlVal:\n";
-    for (size_t i = 0; i < 6; ++i)
-        std::cout<<ctrlVal[i]<<"\n";
+    // std::cout<<"Moved to ctrlVal:\n";
+    // for (size_t i = 0; i < 6; ++i)
+    //     std::cout<<ctrlVal[i]<<"\n";
     
     return true;
 }

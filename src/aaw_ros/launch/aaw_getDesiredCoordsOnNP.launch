@@ -1,8 +1,0 @@
-<launch>
-
-<node pkg="aaw_ros" type="aaw_getDesiredCoordsOnNP" name="aaw_getDesiredCoordsOnNP" output="screen">
-<remap from="/image_raw/left" to="/zedm/zed_node/left/image_rect_gray"/>
-<remap from="/image_raw/right" to="/zedm/zed_node/right/image_rect_gray"/>
-</node>
-
-</launch>
