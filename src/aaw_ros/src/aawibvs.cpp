@@ -2,7 +2,7 @@
 
 const float AAWIBVS::lambda_ = 0.5;
 const unsigned int AAWIBVS::pointsNumber_ = 4;
-const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 30;
+const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 50;
 
 //public member functions
 
@@ -52,18 +52,19 @@ void AAWIBVS::measureDesiredCoordsOnNP() {
     else {
         for (unsigned int i = 0; i < pointsNumber_; ++i) {
             cv::Point2f currentCoordsOnNP;
-            ++desiredCoordsAccumCount_;
             currentCoordsOnNP = getCurrentCoordinatesOnNormalizedPlane(currentVertexes_LeftView_Pixel_[i]);
             desiredCoordsOnNP_sum_[i].x += currentCoordsOnNP.x;
             desiredCoordsOnNP_sum_[i].y += currentCoordsOnNP.y;
         }
+        ++desiredCoordsAccumCount_;
+        std::cout<<"Count "<<desiredCoordsAccumCount_<<"\n";
         if (desiredCoordsAccumCount_ == desiredCoordsAccumMaxTimes_) {
-            std::cout<<"Desired coords of feature points on normalized plane have been accumulated "<<desiredCoordsAccumCount_<<" times,\n"
+            std::cout<<"Desired coords of feature points on normalized plane have been accumulated "<<desiredCoordsAccumCount_<<" times, "
                        "the mean values of these coords are listed below:\n";
             for (unsigned int i = 0; i < pointsNumber_; ++i) {
                 std::cout<<"Point "<<i<<":\n";
-                std::cout<<desiredCoordsOnNP_sum_[i].x / float(desiredCoordsAccumCount_)<<"\n";
-                std::cout<<desiredCoordsOnNP_sum_[i].y / float(desiredCoordsAccumCount_)<<"\n";
+                std::cout<<"x: "<<desiredCoordsOnNP_sum_[i].x / float(desiredCoordsAccumCount_)<<"\n";
+                std::cout<<"y: "<<desiredCoordsOnNP_sum_[i].y / float(desiredCoordsAccumCount_)<<"\n";
             }
         }
     }

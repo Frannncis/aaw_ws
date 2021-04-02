@@ -41,6 +41,7 @@ catkin_simple()
 # may add more of these lines for more nodes from the same package
 cs_add_executable(aaw_visualServo src/aaw_visualServo.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
 cs_add_executable(aaw_moveRobotServer src/aaw_moveRobotServer.cpp src/aawtcpserver.cpp src/aawcoordtransform.cpp)
+cs_add_executable(aaw_getDesiredCoordsOnNP src/aaw_getDesiredCoordsOnNP.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package
@@ -48,6 +49,7 @@ cs_add_executable(aaw_moveRobotServer src/aaw_moveRobotServer.cpp src/aawtcpserv
 
 target_link_libraries( aaw_visualServo ${OpenCV_LIBS})
 target_link_libraries( aaw_moveRobotServer libjsoncpp.a)
+target_link_libraries( aaw_getDesiredCoordsOnNP ${OpenCV_LIBS})
 
 cs_install()
 cs_export()
