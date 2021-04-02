@@ -2,18 +2,21 @@
 
 AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehandle)
 {
-    moveRobotService_ = nh_.advertiseService("move_robot_to_pos", &AAWMoveRobotServer::serviceCallback, this);
-    ROS_INFO("Ready to move robot.");
+    moveRobot_camVel_ = nh_.advertiseService("move_robot_input_camVel", &AAWMoveRobotServer::camVelInputCallback, this);
+    moveRobot_distanceZ_ = nh_.advertiseService("move_robot_input_distanceZ", &AAWMoveRobotServer::distanceZInputCallback, this);
+
     myTCPServerPtr_ = new AAWTCPServer(3000);
     std::vector<float> velAcc{3, 5, 5, 10};
     myTCPServerPtr_->setVelAcc(velAcc);
     myTCPServerPtr_->waitUntilConnected();
     AAWEnableRobot();
     std::cout<<"Robot enabled!\n";
+
     std::vector<float> originalCtrlVal{-11.41949, -10.42905, 681.59697, 5.97, 0.38830, 0.10055};
     while(!(myTCPServerPtr_->move(originalCtrlVal)))
         sleep(1);
-    std::cout<<"Moved to original pos!\n";
+    std::cout<<"Moved to original pos, ready to accept visual servo control!\n";
+
     coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal);
 }
 
@@ -23,9 +26,8 @@ AAWMoveRobotServer::~AAWMoveRobotServer()
     delete coordTransformerPtr_;
 }
 
-bool AAWMoveRobotServer::serviceCallback(aaw_ros::MoveRobotRequest& requestCamVel, aaw_ros::MoveRobotResponse& execStatus)
+bool AAWMoveRobotServer::camVelInputCallback(aaw_ros::MoveRobotRequest& requestCamVel, aaw_ros::MoveRobotResponse& execStatus)
 {
-    // ROS_INFO("Move robot service callback activated");
     Eigen::Matrix<float, 6, 1> camVel;
     camVel(0) = requestCamVel.vx;
     camVel(1) = requestCamVel.vy;
@@ -34,13 +36,20 @@ bool AAWMoveRobotServer::serviceCallback(aaw_ros::MoveRobotRequest& requestCamVe
     camVel(4) = requestCamVel.wy;
     camVel(5) = requestCamVel.wz;
 
-    std::vector<float> ctrlVal;
-    ctrlVal = coordTransformerPtr_->getCtrlVal(camVel);
-    execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal);
-    // std::cout<<"Moved to ctrlVal:\n";
-    // for (size_t i = 0; i < 6; ++i)
-    //     std::cout<<ctrlVal[i]<<"\n";
+    ctrlVal_.clear();
+    ctrlVal_ = coordTransformerPtr_->getCtrlVal(camVel);
+    execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
     
+    return true;
+}
+
+/* 要注意在调用这个服务的地方，不能重复发送指令，因为接收的是增量，重复发送就出错了。
+ * 或者调用之前就把这个增量拆分开，这样允许多次调用。  
+ */
+bool AAWMoveRobotServer::distanceZInputCallback(aaw_ros::MoveRobot_DistanceZRequest& requestDistanceZ, aaw_ros::MoveRobot_DistanceZResponse& execStatus)
+{
+    ctrlVal_[2] += requestDistanceZ.goUpDistance;
+    execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
     return true;
 }
 

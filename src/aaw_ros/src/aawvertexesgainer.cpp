@@ -12,7 +12,6 @@ const float AAWVertexesGainer::antiReflectThreshold_Up_ = 5.0;
 const float AAWVertexesGainer::antiReflectThreshold_Down_ = 5.0;
 const int AAWVertexesGainer::exceptionStartPos_Down_ = 1100;
 
-
 //公有成员函数
 
 AAWVertexesGainer::AAWVertexesGainer()

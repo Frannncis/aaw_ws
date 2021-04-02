@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include "aaw_ros/MoveRobot.h"
+#include "aaw_ros/MoveRobot_DistanceZ.h"
 #include <iostream>
 #include <vector>
 #include "aawtcpserver.h"
@@ -18,11 +19,15 @@ public:
 
 private:
     ros::NodeHandle nh_;
-    ros::ServiceServer moveRobotService_;
+    ros::ServiceServer moveRobot_camVel_;
+    ros::ServiceServer moveRobot_distanceZ_;
     AAWTCPServer *myTCPServerPtr_;
     AAWCoordTransform *coordTransformerPtr_;
 
-    bool serviceCallback(aaw_ros::MoveRobotRequest& requestPos, aaw_ros::MoveRobotResponse& execStatus);
+    std::vector<float> ctrlVal_;
+
+    bool camVelInputCallback(aaw_ros::MoveRobotRequest& requestCamVel, aaw_ros::MoveRobotResponse& execStatus);
+    bool distanceZInputCallback(aaw_ros::MoveRobot_DistanceZRequest& requestDistanceZ, aaw_ros::MoveRobot_DistanceZResponse& execStatus);
 };
 
 #endif

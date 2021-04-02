@@ -59,6 +59,7 @@ private:
     static const float sumOfErrorVecElementsAbs_Threshold_;
     static const unsigned int pointsNumber_;
     static const unsigned int desiredCoordsAccumMaxTimes_;
+    static const unsigned int desiredPosArrivedMaxTimes_;
 
     Eigen::Matrix<float, 3, 3> cameraIntrinsicsMatrix_LeftView, cameraIntrinsicsMatrix_RightView;
     float baseLine_;
@@ -70,6 +71,7 @@ private:
     std::vector<cv::Point2f> desiredCoordsOnNP_sum_;
     unsigned int desiredCoordsAccumCount_;
     float sumOfErrorVecElementsAbs_;
+    unsigned int desiredPosArrivedCount_;
 
     void initIBVS(CameraSerialNumber SN);
     void setCameraIntrinsics(CameraSerialNumber SN);

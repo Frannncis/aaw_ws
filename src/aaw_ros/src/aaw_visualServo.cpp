@@ -10,15 +10,23 @@
 #include "aawvertexesgainer.h"
 #include "aawibvs.h"
 #include <aaw_ros/MoveRobot.h>
+#include <aaw_ros/MoveRobot_DistanceZ.h>
 #include <boost/bind.hpp>
 
 static const std::string Left_View = "Left View";
 static const std::string Right_View = "Right View";
 
 ros::ServiceClient *moveClientPtr;
+ros::ServiceClient *moveClientPtr_DistanceZ;
 AAWIBVS *ibvsPtr;
 
+bool isGoalAchieved_ = false;
+float moveUpDistance_ = 86.09861;
+
 void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::ImageConstPtr& rightImage) {
+    if (isGoalAchieved_)
+        return;
+
     cv_bridge::CvImagePtr cv_ptr_left, cv_ptr_right;
     try {
         cv_ptr_left = cv_bridge::toCvCopy(leftImage, sensor_msgs::image_encodings::BGR8);
@@ -40,24 +48,48 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
     ibvsPtr->updateControlLaw();
     cameraVel = ibvsPtr->getCamCtrlVel();
-    ibvsPtr->isDesiredPosArrived();
     std::cout<<"Control velocity:\n"<<cameraVel<<std::endl;
-    cv::imshow(Left_View, grayImageLeft);
-    cv::imshow(Right_View, grayImageRight);
 
-    aaw_ros::MoveRobot moveSrv;
-    moveSrv.request.vx = cameraVel(0);
-    moveSrv.request.vy = cameraVel(1);
-    moveSrv.request.vz = cameraVel(2);
-    moveSrv.request.wx = cameraVel(3);
-    moveSrv.request.wy = cameraVel(4);
-    moveSrv.request.wz = cameraVel(5);
-
-    if (moveClientPtr->call(moveSrv)) {
-        ROS_INFO("Feedback from server: %d", moveSrv.response.ExecStatus);
+    if (ibvsPtr->isDesiredPosArrived()) {
+        ROS_WARN("Desired pos arrived, now trying to dock, watch out!");
+        sleep(3);
+        
+        aaw_ros::MoveRobot_DistanceZ moveDistanceSrv;
+        moveDistanceSrv.request.goUpDistance = moveUpDistance_;
+        if (moveClientPtr_DistanceZ->call(moveDistanceSrv)) {
+            ROS_INFO("Feedback from server: %d", moveDistanceSrv.response.ExecStatus);
+            if (moveDistanceSrv.response.ExecStatus == 1) {
+                std::cout<<"Docking completed!\n";
+                isGoalAchieved_ = true;
+            }
+            else {
+                isGoalAchieved_ = true;
+                ROS_ERROR("Something terrible happend! Exiting the program...");
+                exit(1);
+            }
+        }
+        else {
+            ROS_ERROR("Failed to call service \"move_robot_input_distanceZ\"\n");
+        }
     }
     else {
-        ROS_ERROR("Failed to call service \"move_robot_to_pos\"\n");
+        cv::imshow(Left_View, grayImageLeft);
+        cv::imshow(Right_View, grayImageRight);
+
+        aaw_ros::MoveRobot moveSrv;
+        moveSrv.request.vx = cameraVel(0);
+        moveSrv.request.vy = cameraVel(1);
+        moveSrv.request.vz = cameraVel(2);
+        moveSrv.request.wx = cameraVel(3);
+        moveSrv.request.wy = cameraVel(4);
+        moveSrv.request.wz = cameraVel(5);
+
+        if (moveClientPtr->call(moveSrv)) {
+            ROS_INFO("Feedback from server: %d", moveSrv.response.ExecStatus);
+        }
+        else {
+            ROS_ERROR("Failed to call service \"move_robot_input_camVel\"\n");
+        }
     }
     
     cv::waitKey(3);
@@ -72,8 +104,10 @@ int main(int argc, char** argv) {
     message_filters::TimeSynchronizer<sensor_msgs::Image, sensor_msgs::Image> sync(left_image_sub_, right_image_sub_, 10);
     sync.registerCallback(boost::bind(&imageCb, _1, _2));
 
-    ros::ServiceClient moveClient = nh_.serviceClient<aaw_ros::MoveRobot>("move_robot_to_pos");
+    ros::ServiceClient moveClient = nh_.serviceClient<aaw_ros::MoveRobot>("move_robot_input_camVel");
+    ros::ServiceClient moveClient_DistanceZ = nh_.serviceClient<aaw_ros::MoveRobot_DistanceZ>("move_robot_input_distanceZ");
     moveClientPtr = &moveClient;
+    moveClientPtr_DistanceZ = &moveClient_DistanceZ;
 
     ibvsPtr = new AAWIBVS(AAWIBVS::SN11818179);
 

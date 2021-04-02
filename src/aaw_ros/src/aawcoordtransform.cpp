@@ -9,7 +9,7 @@
 const float AAWCoordTransform::offset_CFvsRF_X = 50;
 const float AAWCoordTransform::offset_CFvsRF_Y = 200;
 const float AAWCoordTransform::offset_CFvsRF_Z = 400;
-const float AAWCoordTransform::timeIntegration_ = 0.5; //s
+const float AAWCoordTransform::timeIntegration_ = 0.5; //sec
 
 //public member functions
 

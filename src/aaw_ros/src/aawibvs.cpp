@@ -1,9 +1,10 @@
 ﻿#include "aawibvs.h"
 
 const float AAWIBVS::lambda_ = 0.5;
-const float AAWIBVS::sumOfErrorVecElementsAbs_Threshold_ = 0.002;   //实验数据显示的较为合适的值
+const float AAWIBVS::sumOfErrorVecElementsAbs_Threshold_ = 0.0055;   //实验数据显示的较为合适的值-白天的－还是得改成动态的
 const unsigned int AAWIBVS::pointsNumber_ = 4;
 const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 50;
+const unsigned int AAWIBVS::desiredPosArrivedMaxTimes_ = 5; //当累计了这么多次误差向量元素绝对值和小于阈值时，认为已经到达期望位置了，此设置是为了防止偶然性的误差
 
 //public member functions
 
@@ -95,8 +96,14 @@ void AAWIBVS::measureDesiredCoordsOnNP() {
  */
 bool AAWIBVS::isDesiredPosArrived() {
     std::cout<<"sum of abs error vector elements: "<<sumOfErrorVecElementsAbs_<<"\n";
-    if (sumOfErrorVecElementsAbs_ < sumOfErrorVecElementsAbs_Threshold_)
-        return true;
+    if (sumOfErrorVecElementsAbs_ < sumOfErrorVecElementsAbs_Threshold_) {
+        ++desiredPosArrivedCount_;
+        std::cout<<"desired pos has been arrived for "<<desiredPosArrivedCount_<<" time(s)\n";
+        if (desiredPosArrivedCount_ >= desiredPosArrivedMaxTimes_)
+            return true;
+        else
+            return false;
+    }
     else
         return false;
 }
@@ -111,6 +118,7 @@ void AAWIBVS::initIBVS(CameraSerialNumber SN)
         desiredCoordsOnNP_sum_.push_back(cv::Point2f(0, 0));
     }
     sumOfErrorVecElementsAbs_ = 0;
+    desiredPosArrivedCount_ = 0;
 }
 
 /**
