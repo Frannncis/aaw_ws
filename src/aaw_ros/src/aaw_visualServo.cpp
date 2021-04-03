@@ -136,7 +136,7 @@ int visualServoRobot(Eigen::Matrix<float, 6, 1> camCtrlVel)
 int waitingAndWithdraw()
 {
     for (unsigned int i = keepDockingSecs_; i > 0; --i) {
-        std::cout<<"Undocking countdown: "<<keepDockingSecs_<<"s\n";
+        std::cout<<"Undocking countdown: "<<i<<"s\n";
         sleep(1);
     }
 
