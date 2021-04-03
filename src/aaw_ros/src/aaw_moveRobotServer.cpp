@@ -4,20 +4,22 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
 {
     moveRobot_camVel_ = nh_.advertiseService("move_robot_input_camVel", &AAWMoveRobotServer::camVelInputCallback, this);
     moveRobot_distanceZ_ = nh_.advertiseService("move_robot_input_distanceZ", &AAWMoveRobotServer::distanceZInputCallback, this);
+    moveRobot_ctrlVal_ = nh_.advertiseService("move_robot_input_ctrlVal", &AAWMoveRobotServer::ctrlValInputCallback, this);
+    disableRobot_ = nh_.advertiseService("disable_robot_service", &AAWMoveRobotServer::disableRobotCallback, this);
 
     myTCPServerPtr_ = new AAWTCPServer(3000);
     std::vector<float> velAcc{3, 5, 5, 10};
     myTCPServerPtr_->setVelAcc(velAcc);
     myTCPServerPtr_->waitUntilConnected();
+    sleep(3);
     AAWEnableRobot();
     std::cout<<"Robot enabled!\n";
 
-    std::vector<float> originalCtrlVal{-11.41949, -10.42905, 681.59697, 5.97, 0.38830, 0.10055};
-    while(!(myTCPServerPtr_->move(originalCtrlVal)))
+    while(!(myTCPServerPtr_->move(originalCtrlVal_)))
         sleep(1);
     std::cout<<"Moved to original pos, ready to accept visual servo control!\n";
 
-    coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal);
+    coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal_);
 }
 
 AAWMoveRobotServer::~AAWMoveRobotServer()
@@ -48,8 +50,36 @@ bool AAWMoveRobotServer::camVelInputCallback(aaw_ros::MoveRobotRequest& requestC
  */
 bool AAWMoveRobotServer::distanceZInputCallback(aaw_ros::MoveRobot_DistanceZRequest& requestDistanceZ, aaw_ros::MoveRobot_DistanceZResponse& execStatus)
 {
-    ctrlVal_[2] += requestDistanceZ.goUpDistance;
+    if (requestDistanceZ.isUp)
+    {
+        ctrlVal_[2] += requestDistanceZ.goUpDistance;
+        execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
+        return true;
+    }
+    else {
+        ctrlVal_[2] -= requestDistanceZ.goDownDistance;
+        execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
+        return true;
+    }
+}
+
+bool AAWMoveRobotServer::ctrlValInputCallback(aaw_ros::MoveRobot_CtrlValRequest& requestCtrlVal, aaw_ros::MoveRobot_CtrlValResponse& execStatus)
+{
+    ctrlVal_.clear();
+    ctrlVal_[0] = requestCtrlVal.x;
+    ctrlVal_[1] = requestCtrlVal.y;
+    ctrlVal_[2] = requestCtrlVal.z;
+    ctrlVal_[3] = requestCtrlVal.a;
+    ctrlVal_[4] = requestCtrlVal.b;
+    ctrlVal_[5] = requestCtrlVal.c;
     execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
+    return true;
+}
+
+bool AAWMoveRobotServer::disableRobotCallback(aaw_ros::DisableRobotRequest& req, aaw_ros::DisableRobotResponse& execStatus)
+{
+    execStatus.ExecStatus = req.req;
+    AAWDisableRobot();
     return true;
 }
 

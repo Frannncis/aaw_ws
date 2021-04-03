@@ -1,3 +1,5 @@
 float32 goUpDistance
+float32 goDownDistance
+bool isUp
 ---
 int32 ExecStatus
