@@ -16,8 +16,6 @@ class AAWMoveRobotServer
 {
 public:
     AAWMoveRobotServer(ros::NodeHandle* nodehandle);
-    int AAWEnableRobot();
-    int AAWDisableRobot();
     ~AAWMoveRobotServer();
 
 private:
@@ -32,6 +30,8 @@ private:
 
     std::vector<float> ctrlVal_;
 
+    int AAWEnableRobot();
+    int AAWDisableRobot();
     bool camVelInputCallback(aaw_ros::MoveRobotRequest& requestCamVel, aaw_ros::MoveRobotResponse& execStatus);
     bool distanceZInputCallback(aaw_ros::MoveRobot_DistanceZRequest& requestDistanceZ, aaw_ros::MoveRobot_DistanceZResponse& execStatus);
     bool ctrlValInputCallback(aaw_ros::MoveRobot_CtrlValRequest& requestCtrlVal, aaw_ros::MoveRobot_CtrlValResponse& execStatus);

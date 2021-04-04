@@ -36,13 +36,16 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     vg4Left = AAWVertexesGainer(grayImageLeft);
     vg4Right = AAWVertexesGainer(grayImageRight);
     ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
-    ibvsPtr->measureDesiredCoordsOnNP();
+    ibvsPtr->measureDesiredCoordsOnNP();    //起主要作用的函数调用
     cv::imshow(Left_View, grayImageLeft);
     cv::imshow(Right_View, grayImageRight);
     
     cv::waitKey(3);
 }
 
+/* 本node用来获取期望对准位置处相机视野中特征点的数据，调整到期望位姿后启动本node的相应的launch文件，待数据输出后更新到aawibvs.h文件中即可。
+ * 
+ */
 int main(int argc, char** argv) {
     ros::init(argc, argv, "aaw_getDesiredCoordsOnNP");
     ros::NodeHandle nh_;

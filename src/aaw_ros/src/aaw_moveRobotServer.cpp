@@ -1,5 +1,10 @@
 #include "aaw_moveRobotServer.h"
 
+/* 构造函数。
+ * 发布４个ROS Service接受visualServo的运动控制请求。
+ * 创建与并联机构通讯的TCP server并完成连接，使能机器人并将机器人移动到零点。
+ * 主要完成坐标变换与TCP通讯。
+ */
 AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehandle)
 {
     moveRobot_camVel_ = nh_.advertiseService("move_robot_input_camVel", &AAWMoveRobotServer::camVelInputCallback, this);
@@ -22,12 +27,19 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal_);
 }
 
+/* 析构函数，释放动态请求的空间。
+ */
 AAWMoveRobotServer::~AAWMoveRobotServer()
 {
     delete myTCPServerPtr_;
     delete coordTransformerPtr_;
 }
 
+/* 相机伺服速度输入的运动控制回调函数。
+ * 完成坐标变换并驱动控制。
+ * @note 一旦开始由相机速度控制的视觉伺服过程，必须一直调用并更新坐标变换类中的当前坐标变换矩阵，即一直调用此处的coordTransformerPtr_->getCtrlVal(camVel)
+ * 因为本次伺服依赖于上一次的坐标变换矩阵，不允许在伺服过程中进行其他形式的控制请求（如ctrlVal），这样会扰乱伺服过程。
+ */
 bool AAWMoveRobotServer::camVelInputCallback(aaw_ros::MoveRobotRequest& requestCamVel, aaw_ros::MoveRobotResponse& execStatus)
 {
     Eigen::Matrix<float, 6, 1> camVel;
@@ -63,6 +75,8 @@ bool AAWMoveRobotServer::distanceZInputCallback(aaw_ros::MoveRobot_DistanceZRequ
     }
 }
 
+/* 输入并联机构控制量进行运动控制的回调函数，此函数不应在视觉伺服完成之前调用，主要目的是在完成undock之后控制并联机器人回零点。
+ */
 bool AAWMoveRobotServer::ctrlValInputCallback(aaw_ros::MoveRobot_CtrlValRequest& requestCtrlVal, aaw_ros::MoveRobot_CtrlValResponse& execStatus)
 {
     ctrlVal_.clear();
@@ -76,6 +90,8 @@ bool AAWMoveRobotServer::ctrlValInputCallback(aaw_ros::MoveRobot_CtrlValRequest&
     return true;
 }
 
+/* 控制并联机器人下使能的回调函数。
+ */
 bool AAWMoveRobotServer::disableRobotCallback(aaw_ros::DisableRobotRequest& req, aaw_ros::DisableRobotResponse& execStatus)
 {
     execStatus.ExecStatus = req.req;
@@ -83,6 +99,8 @@ bool AAWMoveRobotServer::disableRobotCallback(aaw_ros::DisableRobotRequest& req,
     return true;
 }
 
+/* 使能并联机器人
+ */
 int AAWMoveRobotServer::AAWEnableRobot()
 {
     while (!(myTCPServerPtr_->enableRobot()))
@@ -90,6 +108,8 @@ int AAWMoveRobotServer::AAWEnableRobot()
     std::cout<<"Robot enabled!\n";
 }
 
+/* 下使能并联机器人
+ */
 int AAWMoveRobotServer::AAWDisableRobot()
 {
     while (!(myTCPServerPtr_->disableRobot()))
@@ -97,6 +117,8 @@ int AAWMoveRobotServer::AAWDisableRobot()
     std::cout<<"Robot disabled!\n";
 }
 
+/* 此node接受运动控制请求，将请求转换成运动控制量，实现并联机构的远程驱动控制。
+ */
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "aaw_moveRobotServer");

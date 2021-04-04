@@ -1,5 +1,9 @@
 #include "aaw_visualServo.h"
 
+/* 相机图像话题的回调函数，是本node的主循环结构。
+ * 主要完成图像特征提取与视觉伺服。
+ * 在视觉伺服完成之前进行伺服控制，完成之后进行对接、等待、分离、下使能机器人等操作。
+ */
 void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::ImageConstPtr& rightImage) {
     if (criticalError_ || taskFinished_)
         return;
@@ -40,6 +44,9 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
     ibvsPtr->updateControlLaw();
     if (ibvsPtr->isDesiredPosArrived()) {
+        cv::destroyWindow(Left_View);
+        cv::destroyWindow(Right_View);
+
         //dock
         ROS_WARN("Desired pos arrived, now trying to dock, watch out!");
         sleep(timeWaitBeforeDocking_);
@@ -63,7 +70,7 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
         }
     }
     else {
-        //visual servo
+        //visual servo 一旦开始伺服，到伺服结束之前，不允许进行其他形式的伺服控制请求（如ctrlVal）
         Eigen::Matrix<float, 6, 1> cameraVel;
         cameraVel = ibvsPtr->getCamCtrlVel();
         std::cout<<"Control velocity:\n"<<cameraVel<<std::endl;
@@ -89,7 +96,8 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
 }
 
 /* dock()暂时只能尝试一次，不允许多次请求，因为不知道并联机构执行到了什么位置，靠的是增量计算，多次增量会造成安全事故。
- * 目前只有出错就退出程序这种处理方法。
+ * 其他控制请求函数允许多次请求。
+ * 当未唤起moveRobotServer中的服务时，允许重复尝试。
  */
 int dock()
 {
@@ -113,6 +121,8 @@ int dock()
     }
 }
 
+/* 视觉伺服速度控制请求函数，执行失败时允许重复请求。
+ */
 int visualServoRobot(Eigen::Matrix<float, 6, 1> camCtrlVel)
 {
     aaw_ros::MoveRobot moveSrv;
@@ -133,6 +143,8 @@ int visualServoRobot(Eigen::Matrix<float, 6, 1> camCtrlVel)
     }
 }
 
+/* 实现等待、分离、回零点控制。当dock()完成之后就调用该函数进行处理。
+ */
 int waitingAndWithdraw()
 {
     for (unsigned int i = keepDockingSecs_; i > 0; --i) {
@@ -178,6 +190,8 @@ int waitingAndWithdraw()
     }
 }
 
+/* 分离控制。
+ */
 int undock()
 {
     aaw_ros::MoveRobot_DistanceZ moveDistanceSrv;
@@ -193,6 +207,8 @@ int undock()
     }
 }
 
+/* 回零点控制。
+ */
 int move2OriginalPos()
 {
     aaw_ros::MoveRobot_CtrlVal moveCtrlValSrv;
@@ -213,6 +229,8 @@ int move2OriginalPos()
     }
 }
 
+/* 下使能机器人控制函数，在完成waitingAndWithdraw()之后，不论是否执行成功，都调用该函数下使能机器人。
+ */
 void disableRobot()
 {
     aaw_ros::DisableRobot disableRobotSrv;
@@ -229,6 +247,8 @@ void disableRobot()
         ROS_WARN("Fail to call disableRobot service, please disable it manually.\n");
 }
 
+/* 此node接收视觉数据进行视觉伺服，并将控制量发送给moveRobotServer进行运动控制。
+ */
 int main(int argc, char** argv) {
     ros::init(argc, argv, "aaw_visualServo");
     ros::NodeHandle nh_;
