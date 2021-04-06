@@ -1,11 +1,11 @@
 ﻿#include "aawibvs.h"
 
 const float AAWIBVS::lambda_ = 0.5;
-const float AAWIBVS::sumOfErrorVecElementsAbs_Threshold_ = 0.003;   //实验数据显示的较为合适的值-白天的－还是得改成动态的
-const float AAWIBVS::sumOfEVEAbs_Threshold_Near_ = 0.01;
+const float AAWIBVS::varianceOfEVEA_Threshold_Near_ = 1.0e-3;
+const float AAWIBVS::varianceOfEVEA_Threshold_Arrived_ = 3.0e-5;
 const unsigned int AAWIBVS::pointsNumber_ = 4;
 const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 50; //获取期望位姿的样本量（取这些样本的平均值作为期望位姿）
-const unsigned int AAWIBVS::desiredPosArrivedMaxTimes_ = 3; //当累计了这么多次误差向量元素绝对值和小于阈值时，认为已经到达期望位置了，此设置是为了防止偶然性的误差
+const unsigned int AAWIBVS::maxListSize_ = 5;
 
 //public member functions
 
@@ -93,21 +93,15 @@ void AAWIBVS::measureDesiredCoordsOnNP() {
 }
 
 /**
- * 返回是否伺服至期望位姿的判断结果，通过camCtrlVel的元素和小于某个阈值来判断，阈值由实验获得。
+ * 返回是否伺服至期望位姿的判断结果，通过errorVector的元素绝对值之和的方差小于阈值来判断（方差越小，数据越稳定）。
  * @return 是否到达期望位姿的判定结果。
  */
-bool AAWIBVS::isDesiredPosArrived() {
+bool AAWIBVS::isDesiredPosArrived()
+{
     std::cout<<"sum of abs error vector elements: "<<sumOfErrorVecElementsAbs_<<"\n";
-    if (sumOfErrorVecElementsAbs_ < sumOfErrorVecElementsAbs_Threshold_) {
-        ++desiredPosArrivedCount_;
-        std::cout<<"desired pos has been arrived for "<<desiredPosArrivedCount_<<" time(s)\n";
-        if (desiredPosArrivedCount_ >= desiredPosArrivedMaxTimes_)
-            return true;
-        else
-            return false;
-    }
-    else
-        return false;
+    if (varianceOfEVEA_ < varianceOfEVEA_Threshold_Arrived_)
+        return true;
+    return false;
 }
 
 /**
@@ -115,10 +109,8 @@ bool AAWIBVS::isDesiredPosArrived() {
  * @return　是否伺服接近期望位姿的判断结果。
  */
 bool AAWIBVS::isDesiredPosNear() {
-    if (sumOfErrorVecElementsAbs_ < sumOfEVEAbs_Threshold_Near_) {
-        std::cout<<"Close to the desired pos, now slow down the motion...\n";
+    if (varianceOfEVEA_ < varianceOfEVEA_Threshold_Near_)
         return true;
-    }
     return false;
 }
 
@@ -132,7 +124,8 @@ void AAWIBVS::initIBVS(CameraSerialNumber SN)
         desiredCoordsOnNP_sum_.push_back(cv::Point2f(0, 0));
     }
     sumOfErrorVecElementsAbs_ = 0;
-    desiredPosArrivedCount_ = 0;
+    currentListSize_ = 0;
+    varianceOfEVEA_ = 0;
 }
 
 /**
@@ -233,6 +226,8 @@ Eigen::VectorXf AAWIBVS::calcErrorVector(std::vector<cv::Point2f> currentPointsC
     for (unsigned int i = 0; i < errorVector.size(); ++i) {
         sumOfErrorVecElementsAbs_ += std::abs(errorVector(i));
     }
+    updateEVEAList();
+    calcVarianceOfEVEA();
 
     return errorVector;
 }
@@ -271,4 +266,36 @@ Eigen::MatrixXf AAWIBVS::calcFeatureJacobianMatrix(std::vector<cv::Point2f> coor
 void AAWIBVS::calcCamCtrlVel(Eigen::MatrixXf& featureJacobianMatrix, Eigen::VectorXf& errorVector)
 {
     camCtrlVel_ = featureJacobianMatrix.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve((-1) * lambda_ * errorVector);
+}
+
+/**
+ * 更新EVEA链表，包括从头部删除旧元素、从尾部添加新元素。
+ */
+void AAWIBVS::updateEVEAList()
+{
+    if (currentListSize_ < maxListSize_) {
+        list_sumOfEVEA_.push_back(sumOfErrorVecElementsAbs_);
+        ++currentListSize_;
+    }
+    else {
+        list_sumOfEVEA_.pop_front();
+        list_sumOfEVEA_.push_back(sumOfErrorVecElementsAbs_);
+    }
+}
+
+/**
+ * 计算误差向量元素绝对值之和的方差。
+ * @return　误差向量元素绝对值之和的方差。
+ */
+void AAWIBVS::calcVarianceOfEVEA() {
+    float varianceOfEVEA_sum = 0;
+    float sum, mean;
+    sum = std::accumulate(list_sumOfEVEA_.begin(), list_sumOfEVEA_.end(), 0);
+    mean = sum / (float)currentListSize_;
+    for (listIter_ = list_sumOfEVEA_.begin(); listIter_ != list_sumOfEVEA_.end(); listIter_++) {
+        varianceOfEVEA_sum += std::pow(*listIter_ - mean, 2);
+    }
+    varianceOfEVEA_ = varianceOfEVEA_sum / (float) currentListSize_;
+
+    std::cout<<"Variance of EVEA = "<<varianceOfEVEA_<<"\n";
 }

@@ -4,6 +4,9 @@
 #include <opencv2/opencv.hpp>
 #include <cmath>
 #include <vector>
+#include <list>
+#include <iterator>
+#include <algorithm>
 #include <iostream>
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -56,12 +59,14 @@ public:
     bool isDesiredPosNear();
 
 private:
+    typedef std::list<float> LIST;
+
     static const float lambda_;
-    static const float sumOfErrorVecElementsAbs_Threshold_;
-    static const float sumOfEVEAbs_Threshold_Near_;
+    static const float varianceOfEVEA_Threshold_Near_;
+    static const float varianceOfEVEA_Threshold_Arrived_;
     static const unsigned int pointsNumber_;
     static const unsigned int desiredCoordsAccumMaxTimes_;
-    static const unsigned int desiredPosArrivedMaxTimes_;
+    static const unsigned int maxListSize_;
 
     Eigen::Matrix<float, 3, 3> cameraIntrinsicsMatrix_LeftView, cameraIntrinsicsMatrix_RightView;
     float baseLine_;
@@ -73,7 +78,10 @@ private:
     std::vector<cv::Point2f> desiredCoordsOnNP_sum_;
     unsigned int desiredCoordsAccumCount_;
     float sumOfErrorVecElementsAbs_;
-    unsigned int desiredPosArrivedCount_;
+    LIST list_sumOfEVEA_;
+    LIST::iterator listIter_;
+    unsigned int currentListSize_;
+    float varianceOfEVEA_;
 
     void initIBVS(CameraSerialNumber SN);
     void setCameraIntrinsics(CameraSerialNumber SN);
@@ -84,6 +92,8 @@ private:
     Eigen::VectorXf calcErrorVector(std::vector<cv::Point2f> currentPointsCoordinates_LeftView_NormalizedPlane);
     Eigen::MatrixXf calcFeatureJacobianMatrix(std::vector<cv::Point2f> coords_xyOnNP, std::vector<float> depth_ZInCF);
     void calcCamCtrlVel(Eigen::MatrixXf& featureJacobianMatrix, Eigen::VectorXf& errorVector);
+    void updateEVEAList();
+    void calcVarianceOfEVEA();
 };
 
 #endif // AAWIBVS_H

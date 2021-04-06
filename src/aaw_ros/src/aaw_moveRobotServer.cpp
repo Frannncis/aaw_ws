@@ -19,7 +19,6 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     myTCPServerPtr_->waitUntilConnected();
     sleep(3);
     AAWEnableRobot();
-    std::cout<<"Robot enabled!\n";
 
     while(!(myTCPServerPtr_->move(originalCtrlVal_)))
         sleep(1);

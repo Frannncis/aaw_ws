@@ -25,7 +25,7 @@ namespace visualServo
 {
     static const std::string Left_View = "Left View";
     static const std::string Right_View = "Right View";
-    const unsigned int timeWaitBeforeDocking_ = 3;   //seconds
+    const unsigned int timeWaitBeforeDocking_ = 1;   //seconds
 
     bool isDockingCompleted_ = false;
     bool criticalError_ = false;
