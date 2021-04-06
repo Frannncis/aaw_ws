@@ -1,7 +1,7 @@
 ﻿#include "aawibvs.h"
 
 const float AAWIBVS::lambda_ = 0.5;
-const float AAWIBVS::sumOfErrorVecElementsAbs_Threshold_ = 0.0055;   //实验数据显示的较为合适的值-白天的－还是得改成动态的
+const float AAWIBVS::sumOfErrorVecElementsAbs_Threshold_ = 0.002;   //实验数据显示的较为合适的值-白天的－还是得改成动态的
 const unsigned int AAWIBVS::pointsNumber_ = 4;
 const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 50; //获取期望位姿的样本量（取这些样本的平均值作为期望位姿）
 const unsigned int AAWIBVS::desiredPosArrivedMaxTimes_ = 5; //当累计了这么多次误差向量元素绝对值和小于阈值时，认为已经到达期望位置了，此设置是为了防止偶然性的误差
