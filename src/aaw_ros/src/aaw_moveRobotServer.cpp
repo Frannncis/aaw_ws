@@ -11,9 +11,10 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     moveRobot_distanceZ_ = nh_.advertiseService("move_robot_input_distanceZ", &AAWMoveRobotServer::distanceZInputCallback, this);
     moveRobot_ctrlVal_ = nh_.advertiseService("move_robot_input_ctrlVal", &AAWMoveRobotServer::ctrlValInputCallback, this);
     disableRobot_ = nh_.advertiseService("disable_robot_service", &AAWMoveRobotServer::disableRobotCallback, this);
+    changeTimeIntegration_ = nh_.advertiseService("change_time_integration_service", &AAWMoveRobotServer::changeTimeIntegCallback, this);
 
     myTCPServerPtr_ = new AAWTCPServer(3000);
-    std::vector<float> velAcc{3, 5, 5, 10};
+    std::vector<float> velAcc{5, 10, 10, 10};
     myTCPServerPtr_->setVelAcc(velAcc);
     myTCPServerPtr_->waitUntilConnected();
     sleep(3);
@@ -24,8 +25,8 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
         sleep(1);
     std::cout<<"Moved to original pos, ready to accept visual servo control!\n";
 
-    coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal_);
-}
+    coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal_);                    
+}                                                                                                                                                                                                                                                                                                                           
 
 /* 析构函数，释放动态请求的空间。
  */
@@ -96,6 +97,16 @@ bool AAWMoveRobotServer::disableRobotCallback(aaw_ros::DisableRobotRequest& req,
 {
     execStatus.ExecStatus = req.req;
     AAWDisableRobot();
+    return true;
+}
+
+/**
+ * 更改坐标变换所需时间积分量的回调函数。
+ */
+bool AAWMoveRobotServer::changeTimeIntegCallback(aaw_ros::ChangeTimeIntegrationRequest& reqTimeInteg, aaw_ros::ChangeTimeIntegrationResponse& execStatus)
+{
+    coordTransformerPtr_->changeTimeIntegration(reqTimeInteg.TimeIntegration);
+    execStatus.ExecStatus = 1;
     return true;
 }
 

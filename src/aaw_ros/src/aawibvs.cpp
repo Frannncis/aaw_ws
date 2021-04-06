@@ -1,10 +1,11 @@
 ﻿#include "aawibvs.h"
 
 const float AAWIBVS::lambda_ = 0.5;
-const float AAWIBVS::sumOfErrorVecElementsAbs_Threshold_ = 0.002;   //实验数据显示的较为合适的值-白天的－还是得改成动态的
+const float AAWIBVS::sumOfErrorVecElementsAbs_Threshold_ = 0.003;   //实验数据显示的较为合适的值-白天的－还是得改成动态的
+const float AAWIBVS::sumOfEVEAbs_Threshold_Near_ = 0.01;
 const unsigned int AAWIBVS::pointsNumber_ = 4;
 const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 50; //获取期望位姿的样本量（取这些样本的平均值作为期望位姿）
-const unsigned int AAWIBVS::desiredPosArrivedMaxTimes_ = 5; //当累计了这么多次误差向量元素绝对值和小于阈值时，认为已经到达期望位置了，此设置是为了防止偶然性的误差
+const unsigned int AAWIBVS::desiredPosArrivedMaxTimes_ = 3; //当累计了这么多次误差向量元素绝对值和小于阈值时，认为已经到达期望位置了，此设置是为了防止偶然性的误差
 
 //public member functions
 
@@ -37,7 +38,7 @@ void AAWIBVS::updateVertexesCoordinates(std::vector<cv::Point2f> vertexesLeft, s
 
 /**
  * @brief IBVS::updateControlLaw 更新控制法则，即根据新输入的特征点的像素坐标计算新的控制速度。
- * @note 用户在更新特征点坐标后，需要手动调用改函数才能调用别的公有函数，否则值不会更新。
+ * @note 用户在更新特征点坐标后，需要手动调用该函数才能调用别的公有函数，否则值不会更新。
  */
 void AAWIBVS::updateControlLaw()
 {
@@ -107,6 +108,18 @@ bool AAWIBVS::isDesiredPosArrived() {
     }
     else
         return false;
+}
+
+/**
+ * 返回是否伺服接近期望位姿的判断结果，用来更改速度积分量的判断标志。
+ * @return　是否伺服接近期望位姿的判断结果。
+ */
+bool AAWIBVS::isDesiredPosNear() {
+    if (sumOfErrorVecElementsAbs_ < sumOfEVEAbs_Threshold_Near_) {
+        std::cout<<"Close to the desired pos, now slow down the motion...\n";
+        return true;
+    }
+    return false;
 }
 
 //private member functions

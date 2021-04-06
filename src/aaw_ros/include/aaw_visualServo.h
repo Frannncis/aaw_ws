@@ -17,6 +17,7 @@
 #include <aaw_ros/MoveRobot_DistanceZ.h>
 #include <aaw_ros/MoveRobot_CtrlVal.h>
 #include <aaw_ros/DisableRobot.h>
+#include <aaw_ros/ChangeTimeIntegration.h>
 #include <boost/bind.hpp>
 #include "aaw_originalCtrlVal.h"
 
@@ -29,15 +30,18 @@ namespace visualServo
     bool isDockingCompleted_ = false;
     bool criticalError_ = false;
     bool taskFinished_ = false;
+    bool timeIntegrationChanged_ = false;
     const float moveUpDistance_ = 86.09861;
     const float moveDownDistance_ = moveUpDistance_;
     const unsigned int keepDockingSecs_ = 30;
     const unsigned int communicationRetryingTimes_ = 5;
+    const float lowVelTimeIntegration_ = 0.4;   //senconds
 
     ros::ServiceClient *moveClientPtr;
     ros::ServiceClient *moveClientPtr_DistanceZ;
     ros::ServiceClient *moveClientPtr_CtrlVal;
     ros::ServiceClient *disableRobotClientPtr;
+    ros::ServiceClient *changeTimeIntegrationClientPtr;
     AAWIBVS *ibvsPtr;
 
     void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::ImageConstPtr& rightImage);
@@ -49,6 +53,8 @@ namespace visualServo
     int undock();
     int move2OriginalPos();
     void disableRobot();
+
+    void checkAndChangeTimeIntegration();
 }
 
 #endif

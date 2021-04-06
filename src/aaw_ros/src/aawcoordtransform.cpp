@@ -12,7 +12,7 @@ const float AAWCoordTransform::offset_CFvsRF_Y = 200;
 const float AAWCoordTransform::offset_CFvsRF_Z = 400;
 
 //单位为秒，速度转换成位移用到的时间间隔，太小会导致伺服很慢，太大会导致伺服终点精度不高。不满足需求时可考虑改成动态的。
-const float AAWCoordTransform::timeIntegration_ = 0.5; 
+float AAWCoordTransform::timeIntegration_ = 0.8;
 
 //public member functions
 
@@ -36,6 +36,16 @@ std::vector<float> AAWCoordTransform::getCtrlVal(Eigen::Matrix<float, 6, 1> came
 {
     calcCtrlVal(cameraVel);
     return ctrlVal_;
+}
+
+/**
+ * @brief 更改坐标变换用到的时间积分量大小。
+ * @param timeIntegration 新的时间积分量。
+ */
+void AAWCoordTransform::changeTimeIntegration(float timeIntegration)
+{
+    timeIntegration_ = timeIntegration;
+    std::cout<<"Time integration for velocity changed to "<<timeIntegration_<<" seconds.\n";
 }
 
 //private member functions
@@ -118,8 +128,6 @@ Eigen::Matrix<float, 6, 1> AAWCoordTransform::convertCamVel2mm(Eigen::Matrix<flo
     }
     return cameraVelINmm;
 }
-
-
 
 /**
  * @brief AAWCoordTransform::calcTransformMatrix_C2B 计算并联机构动平台的下个期望位姿坐标系C相对于当前坐标系B的坐标变换矩阵。

@@ -6,6 +6,7 @@
 #include "aaw_ros/MoveRobot_DistanceZ.h"
 #include "aaw_ros/MoveRobot_CtrlVal.h"
 #include "aaw_ros/DisableRobot.h"
+#include "aaw_ros/ChangeTimeIntegration.h"
 #include <iostream>
 #include <vector>
 #include "aawtcpserver.h"
@@ -24,6 +25,7 @@ private:
     ros::ServiceServer moveRobot_distanceZ_;
     ros::ServiceServer moveRobot_ctrlVal_;
     ros::ServiceServer disableRobot_;
+    ros::ServiceServer changeTimeIntegration_;
 
     AAWTCPServer *myTCPServerPtr_;
     AAWCoordTransform *coordTransformerPtr_;
@@ -36,6 +38,7 @@ private:
     bool distanceZInputCallback(aaw_ros::MoveRobot_DistanceZRequest& requestDistanceZ, aaw_ros::MoveRobot_DistanceZResponse& execStatus);
     bool ctrlValInputCallback(aaw_ros::MoveRobot_CtrlValRequest& requestCtrlVal, aaw_ros::MoveRobot_CtrlValResponse& execStatus);
     bool disableRobotCallback(aaw_ros::DisableRobotRequest& req, aaw_ros::DisableRobotResponse& execStatus);
+    bool changeTimeIntegCallback(aaw_ros::ChangeTimeIntegrationRequest& reqTimeInteg, aaw_ros::ChangeTimeIntegrationResponse& execStatus);
 };
 
 #endif

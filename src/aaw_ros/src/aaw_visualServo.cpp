@@ -14,12 +14,14 @@ namespace visualServo {
                 std::cout<<"Task finished!\n";
                 taskFinished_ = true;
                 disableRobot();
+                exit(0);
                 return;
             }
             else {
                 ROS_ERROR("Task failed!");
                 criticalError_ = true;
                 disableRobot();
+                exit(1);
                 return;
             }
         }
@@ -71,6 +73,8 @@ namespace visualServo {
             }
         }
         else {
+            checkAndChangeTimeIntegration();
+
             //visual servo 一旦开始伺服，到伺服结束之前，不允许进行其他形式的伺服控制请求（如ctrlVal）
             Eigen::Matrix<float, 6, 1> cameraVel;
             cameraVel = ibvsPtr->getCamCtrlVel();
@@ -247,6 +251,31 @@ namespace visualServo {
         if (commuRetryingCount_ >= communicationRetryingTimes_)
             ROS_WARN("Fail to call disableRobot service, please disable it manually.\n");
     }
+
+    /* 更改坐标变换时的时间积分量大小，不论是否成功执行（不成功是因为服务没响应），第二个if里的语句只执行一次。
+     */
+    void checkAndChangeTimeIntegration()
+    {
+        if (timeIntegrationChanged_)
+            return;
+        if (ibvsPtr->isDesiredPosNear())
+        {
+            aaw_ros::ChangeTimeIntegration changeTimeIntegSrv;
+            changeTimeIntegSrv.request.TimeIntegration = lowVelTimeIntegration_;
+
+            unsigned int commuRetryingCount_ = 0;
+
+            while ((commuRetryingCount_ < communicationRetryingTimes_) && !(changeTimeIntegrationClientPtr->call(changeTimeIntegSrv))) {
+                ++commuRetryingCount_;
+                std::cout<<"Retrying to call \"change_time_integration_service\" ...\n";
+                sleep(1);
+            }
+            if (commuRetryingCount_ >= communicationRetryingTimes_)
+                ROS_WARN("Fail to call \"change_time_integration_service\".\n");
+
+            timeIntegrationChanged_ = true;
+        }
+    }
 }
 
 /* 此node接收视觉数据进行视觉伺服，并将控制量发送给moveRobotServer进行运动控制。
@@ -265,11 +294,13 @@ int main(int argc, char** argv) {
     ros::ServiceClient moveClient_DistanceZ = nh_.serviceClient<aaw_ros::MoveRobot_DistanceZ>("move_robot_input_distanceZ");
     ros::ServiceClient moveClient_CtrlVal = nh_.serviceClient<aaw_ros::MoveRobot_CtrlVal>("move_robot_input_ctrlVal");
     ros::ServiceClient disableRobotClient = nh_.serviceClient<aaw_ros::DisableRobot>("disable_robot_service");
+    ros::ServiceClient changeTimeIntegrationClient = nh_.serviceClient<aaw_ros::ChangeTimeIntegration>("change_time_integration_service");
 
     moveClientPtr = &moveClient;
     moveClientPtr_DistanceZ = &moveClient_DistanceZ;
     moveClientPtr_CtrlVal = &moveClient_CtrlVal;
     disableRobotClientPtr = &disableRobotClient;
+    changeTimeIntegrationClientPtr = &changeTimeIntegrationClient;
 
     ibvsPtr = new AAWIBVS(AAWIBVS::SN11818179);
 

@@ -20,12 +20,13 @@ class AAWCoordTransform
 public:
     AAWCoordTransform(std::vector<float> &originalCtrlVal);
     std::vector<float> getCtrlVal(Eigen::Matrix<float, 6, 1> cameraVel);
+    void changeTimeIntegration(float timeIntegration);
 
 private:
     static const float offset_CFvsRF_X;
     static const float offset_CFvsRF_Y;
     static const float offset_CFvsRF_Z;
-    static const float timeIntegration_;
+    static float timeIntegration_;
 
     Eigen::Matrix<float, 6, 6> velTransformMatrix_;
     Eigen::Matrix<float, 6, 1> movingPlatformVel_;

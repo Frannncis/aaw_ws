@@ -53,10 +53,12 @@ public:
     Eigen::Matrix<float, 6, 1> getCamCtrlVel();
     void measureDesiredCoordsOnNP();
     bool isDesiredPosArrived();
+    bool isDesiredPosNear();
 
 private:
     static const float lambda_;
     static const float sumOfErrorVecElementsAbs_Threshold_;
+    static const float sumOfEVEAbs_Threshold_Near_;
     static const unsigned int pointsNumber_;
     static const unsigned int desiredCoordsAccumMaxTimes_;
     static const unsigned int desiredPosArrivedMaxTimes_;
