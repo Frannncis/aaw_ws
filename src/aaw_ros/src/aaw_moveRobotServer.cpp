@@ -19,7 +19,8 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     myTCPServerPtr_->waitUntilConnected();
     sleep(3);
     AAWEnableRobot();
-
+    
+    sleep(1);   //并联机构使能之后需要等待1秒才能运动
     while(!(myTCPServerPtr_->move(originalCtrlVal_)))
         sleep(1);
     std::cout<<"Moved to original pos, ready to accept visual servo control!\n";
