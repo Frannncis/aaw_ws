@@ -7,9 +7,9 @@
 
 //------------------------Need to be measured!!!-------------------------
 //前3个值不影响视觉伺服的最终结果精度，但是会影响伺服过程的平滑度，与实际值越接近，伺服轨迹越流畅。
-const float AAWCoordTransform::offset_CFvsRF_X = 50;
-const float AAWCoordTransform::offset_CFvsRF_Y = 200;
-const float AAWCoordTransform::offset_CFvsRF_Z = 400;
+const float AAWCoordTransform::offset_CFvsRF_X = 10;
+const float AAWCoordTransform::offset_CFvsRF_Y = 258;
+const float AAWCoordTransform::offset_CFvsRF_Z = 435;
 
 //单位为秒，速度转换成位移用到的时间间隔，太小会导致伺服很慢，太大会导致伺服终点精度不高。不满足需求时可考虑改成动态的。
 float AAWCoordTransform::timeIntegration_ = 0.8;

@@ -1,7 +1,7 @@
 #include "aaw_moveRobotServer.h"
 
 /* 构造函数。
- * 发布４个ROS Service接受visualServo的运动控制请求。
+ * 发布6个ROS Service接受visualServo的控制请求。
  * 创建与并联机构通讯的TCP server并完成连接，使能机器人并将机器人移动到零点。
  * 主要完成坐标变换与TCP通讯。
  */
@@ -10,8 +10,9 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     moveRobot_camVel_ = nh_.advertiseService("move_robot_input_camVel", &AAWMoveRobotServer::camVelInputCallback, this);
     moveRobot_distanceZ_ = nh_.advertiseService("move_robot_input_distanceZ", &AAWMoveRobotServer::distanceZInputCallback, this);
     moveRobot_ctrlVal_ = nh_.advertiseService("move_robot_input_ctrlVal", &AAWMoveRobotServer::ctrlValInputCallback, this);
-    disableRobot_ = nh_.advertiseService("disable_robot_service", &AAWMoveRobotServer::disableRobotCallback, this);
+    changeRobotStatus_ = nh_.advertiseService("change_robot_status_service", &AAWMoveRobotServer::changeRobotStatusCallback, this);
     changeTimeIntegration_ = nh_.advertiseService("change_time_integration_service", &AAWMoveRobotServer::changeTimeIntegCallback, this);
+    updateCoordTransformer_ = nh_.advertiseService("update_coord_trans_service", &AAWMoveRobotServer::updateCoordTransCallback, this);
 
     myTCPServerPtr_ = new AAWTCPServer(3000);
     std::vector<float> velAcc{5, 10, 10, 10};
@@ -19,14 +20,14 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     myTCPServerPtr_->waitUntilConnected();
     sleep(3);
     AAWEnableRobot();
-    
-    sleep(1);   //并联机构使能之后需要等待1秒才能运动
+
     while(!(myTCPServerPtr_->move(originalCtrlVal_)))
         sleep(1);
     std::cout<<"Moved to original pos, ready to accept visual servo control!\n";
+    AAWDisableRobot();
 
     coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal_);                    
-}                                                                                                                                                                                                                                                                                                                           
+}
 
 /* 析构函数，释放动态请求的空间。
  */
@@ -93,10 +94,13 @@ bool AAWMoveRobotServer::ctrlValInputCallback(aaw_ros::MoveRobot_CtrlValRequest&
 
 /* 控制并联机器人下使能的回调函数。
  */
-bool AAWMoveRobotServer::disableRobotCallback(aaw_ros::DisableRobotRequest& req, aaw_ros::DisableRobotResponse& execStatus)
+bool AAWMoveRobotServer::changeRobotStatusCallback(aaw_ros::ChangeRobotStatusRequest& requestStatus, aaw_ros::ChangeRobotStatusResponse& execStatus)
 {
-    execStatus.ExecStatus = req.req;
-    AAWDisableRobot();
+    if (requestStatus.toEnable == true)
+        AAWEnableRobot();
+    else
+        AAWDisableRobot();
+    execStatus.ExecStatus = 1;
     return true;
 }
 
@@ -110,18 +114,32 @@ bool AAWMoveRobotServer::changeTimeIntegCallback(aaw_ros::ChangeTimeIntegrationR
     return true;
 }
 
-/* 使能并联机器人
+/**
+ * 更新coordTransformerPtr_指针指向的坐标变换类对象，因为上一次伺服结束之后就没有更新这个类对象的值了，已经失效了。
  */
-int AAWMoveRobotServer::AAWEnableRobot()
+bool AAWMoveRobotServer::updateCoordTransCallback(aaw_ros::UpdateCoordTransformerRequest& req, aaw_ros::UpdateCoordTransformerResponse& res)
+{
+    if (req.newTransformer == true) {
+        delete coordTransformerPtr_;
+        coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal_);
+        res.ExecStatus = 1;
+    }
+    return true;
+}
+
+/* 使能并联机器人,能返回就一定是成功了，否则一直阻塞。
+ */
+void AAWMoveRobotServer::AAWEnableRobot()
 {
     while (!(myTCPServerPtr_->enableRobot()))
         sleep(1);
+    sleep(1);   //并联机构使能之后需要等待1秒才能运动
     std::cout<<"Robot enabled!\n";
 }
 
-/* 下使能并联机器人
+/* 下使能并联机器人,能返回就一定是成功了，否则一直阻塞。
  */
-int AAWMoveRobotServer::AAWDisableRobot()
+void AAWMoveRobotServer::AAWDisableRobot()
 {
     while (!(myTCPServerPtr_->disableRobot()))
         sleep(1);
@@ -134,9 +152,6 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "aaw_moveRobotServer");
     ros::NodeHandle nh;
-
-    // ros::ServiceServer service = n.advertiseService("move_robot_to_pos", callback);
-    // ROS_INFO("Ready to move robot.");
 
     AAWMoveRobotServer amr(&nh);
     

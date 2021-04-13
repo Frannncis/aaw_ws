@@ -16,8 +16,11 @@
 #include <aaw_ros/MoveRobot.h>
 #include <aaw_ros/MoveRobot_DistanceZ.h>
 #include <aaw_ros/MoveRobot_CtrlVal.h>
-#include <aaw_ros/DisableRobot.h>
+#include <aaw_ros/ChangeRobotStatus.h>
 #include <aaw_ros/ChangeTimeIntegration.h>
+#include <aaw_ros/BoltMotionCtrl.h>
+#include <aaw_ros/LDSMotionCtrl.h>
+#include <aaw_ros/UpdateCoordTransformer.h>
 #include <boost/bind.hpp>
 #include "aaw_originalCtrlVal.h"
 
@@ -27,34 +30,52 @@ namespace visualServo
     static const std::string Right_View = "Right View";
     const unsigned int timeWaitBeforeDocking_ = 1;   //seconds
 
-    bool isDockingCompleted_ = false;
-    bool criticalError_ = false;
-    bool taskFinished_ = false;
+    bool toDock_ = false; //决定此次动作是对接还是分离,true为对接,false为分离，初始值设为false，是因为wakeUpActionCallback中会进行一次反转。
+    bool readyToGoHome_ = false;    //上方的插销动作完成后，将此标志设为true，进行回撤和回零点动作。
+    bool taskFinished_ = true; //正式程序中，这个的初始值应该为true，等收到小车的信号再设为false.
     bool timeIntegrationChanged_ = false;
-    const float moveUpDistance_ = 86.09861;
+    const float moveUpDistance_ = 93.93434;
     const float moveDownDistance_ = moveUpDistance_;
-    const unsigned int keepDockingSecs_ = 30;
+    const unsigned int keepDockingSecs_ = 20;
     const unsigned int communicationRetryingTimes_ = 5;
     const float lowVelTimeIntegration_ = 0.4;   //senconds
 
     ros::ServiceClient *moveClientPtr;
     ros::ServiceClient *moveClientPtr_DistanceZ;
     ros::ServiceClient *moveClientPtr_CtrlVal;
-    ros::ServiceClient *disableRobotClientPtr;
+    ros::ServiceClient *changeRobotStatusClientPtr;
     ros::ServiceClient *changeTimeIntegrationClientPtr;
+    ros::ServiceClient *boltMotionCtrlClientPtr;
+    ros::ServiceClient *LDSMotionCtrlClientPtr;
+    ros::ServiceClient *updateCoordTransClientPtr;
     AAWIBVS *ibvsPtr;
+
+    void showMsg(const char * msg);
+    void errorMsg(const char * msg);
 
     void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::ImageConstPtr& rightImage);
 
+    //并联机构控制相关函数
     int visualServoRobot(Eigen::Matrix<float, 6, 1> camCtrlVel);
     int dock();
-
-    int waitingAndWithdraw();
-    int undock();
-    int move2OriginalPos();
     void disableRobot();
-
+    void enableRobot();
+    int withdrawAndGoHome();
+    int withdraw();
+    int move2OriginalPos();
     void checkAndChangeTimeIntegration();
+
+    //上方直线运动模组控制相关函数
+    int insertBolt();
+    int pullOutBolt();
+
+    //侧方推杆控制相关函数
+    int pushOutLDS();
+    int pullBackLDS();
+
+    bool wakeUpActionCallback();    //预留，接受小车信号进行下一次动作。
+    int updateCoordTrans();
+    void waitAndWakeUpAction();     //不与小车通信时用这个触发新的动作。
 }
 
 #endif
