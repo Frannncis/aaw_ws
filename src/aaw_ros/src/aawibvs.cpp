@@ -2,7 +2,7 @@
 
 const float AAWIBVS::lambda_ = 0.5;
 const float AAWIBVS::varianceOfEVEA_Threshold_Near_ = 1.0e-3;
-const float AAWIBVS::varianceOfEVEA_Threshold_Arrived_ = 3.0e-5;
+const float AAWIBVS::varianceOfEVEA_Threshold_Arrived_ = 5.0e-5;
 const unsigned int AAWIBVS::pointsNumber_ = 4;
 const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 50; //获取期望位姿的样本量（取这些样本的平均值作为期望位姿）
 const unsigned int AAWIBVS::maxListSize_ = 5;

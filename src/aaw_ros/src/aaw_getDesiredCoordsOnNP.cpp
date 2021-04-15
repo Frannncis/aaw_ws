@@ -7,10 +7,12 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <Eigen/Dense>
-#include "aawvertexesgainer.h"
+// #include "aawvertexesgainer.h"
 #include "aawibvs.h"
 #include <aaw_ros/MoveRobot.h>
 #include <boost/bind.hpp>
+
+#include "aawvertexesgainer2.h"
 
 static const std::string Left_View = "Left View";
 static const std::string Right_View = "Right View";
@@ -27,6 +29,7 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
         return;
     }
     
+    /*
     AAWVertexesGainer vg4Left, vg4Right;
     cv::Mat grayImageLeft, grayImageRight;
     cv::cvtColor(cv_ptr_left->image, grayImageLeft, cv::COLOR_BGR2GRAY);
@@ -35,11 +38,22 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     cv::GaussianBlur(grayImageRight, grayImageRight, cv::Size(3,3),0,0);
     vg4Left = AAWVertexesGainer(grayImageLeft);
     vg4Right = AAWVertexesGainer(grayImageRight);
+    */
+
+    AAWVertexesGainer2 vg4Left, vg4Right;
+    cv::Mat grayImageLeft, grayImageRight;
+    cv::cvtColor(cv_ptr_left->image, grayImageLeft, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(cv_ptr_right->image, grayImageRight, cv::COLOR_BGR2GRAY);
+    cv::GaussianBlur(grayImageLeft, grayImageLeft, cv::Size(3,3),0,0);
+    cv::GaussianBlur(grayImageRight, grayImageRight, cv::Size(3,3),0,0);
+    vg4Left = AAWVertexesGainer2(grayImageLeft);
+    vg4Right = AAWVertexesGainer2(grayImageRight);
+
     ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
     ibvsPtr->measureDesiredCoordsOnNP();    //起主要作用的函数调用
     cv::imshow(Left_View, grayImageLeft);
     cv::imshow(Right_View, grayImageRight);
-    
+
     cv::waitKey(3);
 }
 

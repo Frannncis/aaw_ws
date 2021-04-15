@@ -24,10 +24,10 @@ namespace CameraSN11818179 {
     const float baseLine = 0.0630536;
 
     //----------------------Need to be measured!!!----------------------------------------
-    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_0(-0.31954, -0.304001);
-    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_1(-0.317953, 0.189714);
-    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_2(0.670817, 0.191967);
-    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_3(0.672962, -0.305549);
+    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_0(-0.303472, -0.305987);
+    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_1(-0.30531, 0.18473);
+    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_2(0.67679, 0.189987);
+    const cv::Point2f desiredCoord_LeftView_NormalizedPlane_3(0.67688, -0.301817);
 }
 
 namespace CameraSN16988350 {

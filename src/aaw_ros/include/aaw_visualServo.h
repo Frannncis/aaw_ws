@@ -11,7 +11,8 @@
 #include <message_filters/time_synchronizer.h>
 #include <Eigen/Dense>
 #include <Eigen/Core>
-#include "aawvertexesgainer.h"
+// #include "aawvertexesgainer.h"
+#include "aawvertexesgainer2.h"
 #include "aawibvs.h"
 #include <aaw_ros/MoveRobot.h>
 #include <aaw_ros/MoveRobot_DistanceZ.h>
@@ -30,11 +31,11 @@ namespace visualServo
     static const std::string Right_View = "Right View";
     const unsigned int timeWaitBeforeDocking_ = 1;   //seconds
 
-    bool toDock_ = false; //决定此次动作是对接还是分离,true为对接,false为分离，初始值设为false，是因为wakeUpActionCallback中会进行一次反转。
+    bool toDock_ = true; //决定此次动作是对接还是分离,true为对接,false为分离，初始值设为false，是因为wakeUpActionCallback中会进行一次反转。
     bool readyToGoHome_ = false;    //上方的插销动作完成后，将此标志设为true，进行回撤和回零点动作。
     bool taskFinished_ = true; //正式程序中，这个的初始值应该为true，等收到小车的信号再设为false.
     bool timeIntegrationChanged_ = false;
-    const float moveUpDistance_ = 93.93434;
+    const float moveUpDistance_ = 94.05559;
     const float moveDownDistance_ = moveUpDistance_;
     const unsigned int keepDockingSecs_ = 20;
     const unsigned int communicationRetryingTimes_ = 5;

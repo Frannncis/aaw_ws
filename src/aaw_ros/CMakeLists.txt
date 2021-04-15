@@ -39,11 +39,15 @@ catkin_simple()
 
 # Executables: uncomment the following and edit arguments to compile new nodes
 # may add more of these lines for more nodes from the same package
-cs_add_executable(aaw_visualServo src/aaw_visualServo.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
+
+#cs_add_executable(aaw_visualServo src/aaw_visualServo.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
+cs_add_executable(aaw_visualServo src/aaw_visualServo.cpp src/aawvertexesgainer2.cpp src/aawibvs.cpp)
 cs_add_executable(aaw_moveRobotServer src/aaw_moveRobotServer.cpp src/aawtcpserver.cpp src/aawcoordtransform.cpp)
-cs_add_executable(aaw_getDesiredCoordsOnNP src/aaw_getDesiredCoordsOnNP.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
+#cs_add_executable(aaw_getDesiredCoordsOnNP src/aaw_getDesiredCoordsOnNP.cpp src/aawvertexesgainer.cpp src/aawibvs.cpp)
+cs_add_executable(aaw_getDesiredCoordsOnNP src/aaw_getDesiredCoordsOnNP.cpp src/aawvertexesgainer2.cpp src/aawibvs.cpp)
 cs_add_executable(aaw_motorDriverServer_Up src/aaw_motorDriverServer_Up.cpp src/aawserver4motor.cpp)
 cs_add_executable(aaw_motorDriverServer_Side src/aaw_motorDriverServer_Side.cpp src/aawserver4motor.cpp)
+
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package

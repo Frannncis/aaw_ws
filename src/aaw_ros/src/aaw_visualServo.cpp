@@ -40,9 +40,9 @@ namespace visualServo {
         cv::GaussianBlur(grayImageLeft, grayImageLeft, cv::Size(3,3),0,0);
         cv::GaussianBlur(grayImageRight, grayImageRight, cv::Size(3,3),0,0);
 
-        AAWVertexesGainer vg4Left, vg4Right;
-        vg4Left = AAWVertexesGainer(grayImageLeft);
-        vg4Right = AAWVertexesGainer(grayImageRight);
+        AAWVertexesGainer2 vg4Left, vg4Right;
+        vg4Left = AAWVertexesGainer2(grayImageLeft);
+        vg4Right = AAWVertexesGainer2(grayImageRight);
 
         ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
         ibvsPtr->updateControlLaw();
