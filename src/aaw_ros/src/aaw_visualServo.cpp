@@ -17,7 +17,9 @@ namespace visualServo {
                     showMsg("Undocking completed!");
                 taskFinished_ = true;
                 disableRobot();
-                waitAndWakeUpAction();
+                // waitAndWakeUpAction();
+                while (!askCarToMove()) //执行结束，让小车移动
+                    sleep(1);
                 return;
             }
             else {
@@ -44,9 +46,23 @@ namespace visualServo {
         vg4Left = AAWVertexesGainer2(grayImageLeft);
         vg4Right = AAWVertexesGainer2(grayImageRight);
 
+        if (vg4Right.isLeftBoundOutaView()) {
+            ROS_WARN("Left of main body out of view!");
+            while (!moveCarForwardALittle())
+                    sleep(1);
+            sleep(1);
+            return;
+        }
+        if (vg4Left.isRightBoundOutaView()) {
+            ROS_WARN("Right of main body out of view!");
+            while (!moveCarBackwardALittle())
+                sleep(1);
+            sleep(1);
+            return;
+        }
+        
         ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
         ibvsPtr->updateControlLaw();
-
 
         if (ibvsPtr->isDesiredPosArrived()) {
             // cv::destroyWindow(Left_View);
@@ -117,7 +133,7 @@ namespace visualServo {
         cv::waitKey(3);
     }
 
-    bool wakeUpActionCallback()
+    bool wakeUpAction()
     {
         toDock_ = !toDock_; //反转上方插销动作,其他的过程都一样，更新一下初始值即可。
         readyToGoHome_ = false;
@@ -148,10 +164,74 @@ namespace visualServo {
             return 1;   //只要能返回，就是成功的.
     }
 
+    //循环动作时才需要
     void waitAndWakeUpAction()
     {
-        sleep(10);
-        wakeUpActionCallback();
+        sleep(3);
+        wakeUpAction();
+    }
+
+    bool restartRobotMotionCallback(interaction::RestartRobotMotionRequest& requestMotion, interaction::RestartRobotMotionResponse& execStatus)
+    {
+        if (requestMotion.ToMove == true) {
+            waitAndWakeUpAction();
+            execStatus.ExecStatus = 1;
+        }
+        else
+            execStatus.ExecStatus = 0;
+        return true;
+    }
+
+    int askCarToMove()
+    {
+        sleep(3);
+        interaction::MoveCar moveCarSrv;
+        moveCarSrv.request.ToMove = true;
+
+        unsigned int commuRetryingCount_ = 0;
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(moveCarClientPtr->call(moveCarSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call MoveCar service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            errorMsg("Fail to call MoveCar service!");
+        else
+            return moveCarSrv.response.ExecStatus;
+    }
+
+    int moveCarForwardALittle()
+    {
+        interaction::AdjustCarPos adjustCarPosSrv;
+        adjustCarPosSrv.request.MoveForward = true;
+
+        unsigned int commuRetryingCount_ = 0;
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(adjustCarPosClientPtr->call(adjustCarPosSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call AdjustCarPos service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            errorMsg("Fail to call AdjustCarPos service!");
+        else
+            return adjustCarPosSrv.response.ExecStatus;
+    }
+
+    int moveCarBackwardALittle()
+    {
+        interaction::AdjustCarPos adjustCarPosSrv;
+        adjustCarPosSrv.request.MoveForward = false;
+
+        unsigned int commuRetryingCount_ = 0;
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(adjustCarPosClientPtr->call(adjustCarPosSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call AdjustCarPos service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            errorMsg("Fail to call AdjustCarPos service!");
+        else
+            return adjustCarPosSrv.response.ExecStatus;
     }
 
     /* dock()暂时只能尝试一次，不允许多次请求，因为不知道并联机构执行到了什么位置，靠的是增量计算，多次增量会造成安全事故。
@@ -482,6 +562,10 @@ int main(int argc, char** argv) {
     ros::ServiceClient LDSMotionCtrlClient = nh_.serviceClient<aaw_ros::LDSMotionCtrl>("LDS_motion_ctrl_service");
     ros::ServiceClient updateCoordTransClient = nh_.serviceClient<aaw_ros::UpdateCoordTransformer>("update_coord_trans_service");
 
+    ros::ServiceClient moveCarClient = nh_.serviceClient<interaction::MoveCar>("move_car_service");
+    ros::ServiceClient adjustCarPosClient = nh_.serviceClient<interaction::AdjustCarPos>("adjust_car_pos_service");
+    restartRobotMotion_ = nh_.advertiseService("restart_robot_motion_service", &restartRobotMotionCallback);
+
     moveClientPtr = &moveClient;
     moveClientPtr_DistanceZ = &moveClient_DistanceZ;
     moveClientPtr_CtrlVal = &moveClient_CtrlVal;
@@ -490,6 +574,8 @@ int main(int argc, char** argv) {
     boltMotionCtrlClientPtr = &boltMotionCtrlClient;
     LDSMotionCtrlClientPtr = &LDSMotionCtrlClient;
     updateCoordTransClientPtr = &updateCoordTransClient;
+    moveCarClientPtr = &moveCarClient;
+    adjustCarPosClientPtr = &adjustCarPosClient;
 
     ibvsPtr = new AAWIBVS(AAWIBVS::SN11818179);
 
@@ -500,9 +586,9 @@ int main(int argc, char** argv) {
     ros::Duration timer(0.1);
 
     //不与小车协同才需要这一部分.
-    showMsg("Visual servo will start in 5 senconds.");
+/*    showMsg("Visual servo will start in 5 senconds.");
     sleep(5);
-    wakeUpActionCallback();
+    wakeUpAction(); */
 
     while (ros::ok()) {
         ros::spinOnce();

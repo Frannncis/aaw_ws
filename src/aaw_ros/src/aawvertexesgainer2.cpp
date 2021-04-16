@@ -23,27 +23,45 @@ const float AAWVertexesGainer2::leftTakesInRatio_ = 0.75;
 const float AAWVertexesGainer2::rightTakesInRatio_ = 0.75;
 const float AAWVertexesGainer2::downTakesInRatio_ = 0.5;
 
+//判断左右边界是否出视野所用的像素最大灰度差值的平均值
+const float AAWVertexesGainer2::outaView_PixelDifferAvgThreshold_ = 5.0;
+
 //将图像稀疏处理的倍数，用来提高找主体的速度。越大越快，越小越精确。
 const int AAWVertexesGainer2::sparceRatio_ = 10;
 
 //公有成员函数
 
-AAWVertexesGainer2::AAWVertexesGainer2()
+AAWVertexesGainer2::AAWVertexesGainer2() : mainBodyApproxiRows_(0),
+                                           mainBodyApproxiCols_(0),
+                                           leftMaybeOut_(false),
+                                           rightMaybeOut_(false),
+                                           leftPixelDifferAvg_(0),
+                                           rightPixelDifferAvg_(0)
 {
 
 }
 
-AAWVertexesGainer2::AAWVertexesGainer2(cv::Mat & image)
+AAWVertexesGainer2::AAWVertexesGainer2(cv::Mat & image) : mainBodyApproxiRows_(0),
+                                                          mainBodyApproxiCols_(0),
+                                                          leftMaybeOut_(false),
+                                                          rightMaybeOut_(false),
+                                                          leftPixelDifferAvg_(0),
+                                                          rightPixelDifferAvg_(0)
 {
+    //这两个变量是没用的，不用管
+    float upPixelDifferAvg, downPixelDifferAvg;
+    upPixelDifferAvg = 0;
+    downPixelDifferAvg = 0;
+
     cv::Mat imageTransposed = image.t();
 
     std::vector<cv::Point2i> corners = findMainBodyPosition(image);
     std::vector<cv::Vec4i> imgROI = getImageROI(image, corners);
 
-    upBoundary_ = getTransposedLine(myLineFitting2(imageTransposed, imgROI[0][0], imgROI[0][1], imgROI[0][2], imgROI[0][3], true, antiMessThreshold_Up_));
-    downBoundary_ = getTransposedLine(myLineFitting2(imageTransposed, imgROI[1][0], imgROI[1][1], imgROI[1][2], imgROI[1][3], false, antiMessThreshold_Down_));
-    leftBoundary_ = myLineFitting2(image, imgROI[2][0], imgROI[2][1], imgROI[2][2], imgROI[2][3], true, antiMessThreshold_Left_);
-    rightBoundary_ = myLineFitting2(image, imgROI[3][0], imgROI[3][1], imgROI[3][2], imgROI[3][3], false, antiMessThreshold_Right_);
+    upBoundary_ = getTransposedLine(myLineFitting2(imageTransposed, imgROI[0][0], imgROI[0][1], imgROI[0][2], imgROI[0][3], true, antiMessThreshold_Up_, upPixelDifferAvg));
+    downBoundary_ = getTransposedLine(myLineFitting2(imageTransposed, imgROI[1][0], imgROI[1][1], imgROI[1][2], imgROI[1][3], false, antiMessThreshold_Down_, downPixelDifferAvg));
+    leftBoundary_ = myLineFitting2(image, imgROI[2][0], imgROI[2][1], imgROI[2][2], imgROI[2][3], true, antiMessThreshold_Left_, leftPixelDifferAvg_);
+    rightBoundary_ = myLineFitting2(image, imgROI[3][0], imgROI[3][1], imgROI[3][2], imgROI[3][3], false, antiMessThreshold_Right_, rightPixelDifferAvg_);
 
     vertexes_.push_back(calcIntersectionPointOf2Lines(leftBoundary_, upBoundary_));
     vertexes_.push_back(calcIntersectionPointOf2Lines(leftBoundary_, downBoundary_));
@@ -63,7 +81,29 @@ std::vector<cv::Point2f> AAWVertexesGainer2::get4Vertexes() const
     return vertexes_;
 }
 
+bool AAWVertexesGainer2::isLeftBoundOutaView()
+{
+    if (leftMaybeOut_) {
+        if (leftPixelDifferAvg_ < outaView_PixelDifferAvgThreshold_)
+            return true;
+        else
+            return false;
+    }
+    else
+        return false;
+}
 
+bool AAWVertexesGainer2::isRightBoundOutaView()
+{
+    if (rightMaybeOut_) {
+        if (rightPixelDifferAvg_ < outaView_PixelDifferAvgThreshold_)
+            return true;
+        else
+            return false;
+    }
+    else
+        return false;
+}
 
 //私有成员函数
 
@@ -199,8 +239,12 @@ std::vector<cv::Point2i> AAWVertexesGainer2::findMainBodyPosition(cv::Mat & inpu
     rightDownCorner.x = leftUpCorner.x + winCols - 1;
     rightDownCorner.y = leftUpCorner.y + winRows - 1;
 
-    if (rightDownCorner.x >= iCols - 1)
+    if (leftUpCorner.x <= 0)
+        leftMaybeOut_ = true;
+    if (rightDownCorner.x >= iCols - 1) {
         rightDownCorner.x = iCols - 1;
+        rightMaybeOut_ = true;
+    }
     if (rightDownCorner.y >= iRows - 1)
         rightDownCorner.y = iRows - 1;
 
@@ -284,7 +328,7 @@ cv::Vec4f AAWVertexesGainer2::myLineFitting2(cv::Mat &image,
                                              int colRangeLeft,
                                              int colRangeRight,
                                              bool blockRight,
-                                             float antiMessThreshold)
+                                             float antiMessThreshold, float & pixelDifferAvg)
 {
     cv::Vec4f fittedLineInitial, fittedLineUltimate;
     std::vector<cv::Point2f> selectedPointsInitial, selectedPointsUltimate, initFittedLinePoints;
@@ -296,7 +340,7 @@ cv::Vec4f AAWVertexesGainer2::myLineFitting2(cv::Mat &image,
 
     compareWindowSize = colRangeRight - colRangeLeft - 1;
 
-    int pixelDiffer = 0, pixelDifferMax = 0;
+    int pixelDiffer = 0, pixelDifferMax = 0, pixelDifferSum = 0;
     uchar * pixel;
     cv::Point2f MaxGrayGradientPoint;
 
@@ -311,8 +355,10 @@ cv::Vec4f AAWVertexesGainer2::myLineFitting2(cv::Mat &image,
             }
         }
         selectedPointsInitial.push_back(MaxGrayGradientPoint);
+        pixelDifferSum += pixelDifferMax;
         pixelDifferMax = 0;
     }
+    pixelDifferAvg = float(pixelDifferSum)/float(endRow-startRow+1);
 
     //直线拟合获得的cv::Vec4f类型直线参数，前两位为正则化的方向向量，后两位为直线上一点的坐标。
     cv::fitLine(selectedPointsInitial, fittedLineInitial, cv::DIST_HUBER, 0, 0.01, 0.01);

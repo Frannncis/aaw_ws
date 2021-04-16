@@ -20,6 +20,8 @@ public:
     AAWVertexesGainer2(cv::Mat & image);
     ~AAWVertexesGainer2();
     std::vector<cv::Point2f> get4Vertexes() const;
+    bool isLeftBoundOutaView();
+    bool isRightBoundOutaView();
 
 private:
 
@@ -45,11 +47,20 @@ private:
     static const float leftTakesInRatio_;
     static const float rightTakesInRatio_;
     static const float downTakesInRatio_;
+    static const float outaView_PixelDifferAvgThreshold_;
 
     static const int sparceRatio_;  //对图片进行稀疏处理的倍率
 
     int mainBodyApproxiRows_;    //主体在视野中大约占了多少行像素
     int mainBodyApproxiCols_;    //主体在视野中大约占了多少列像素
+
+    //判断主体的左右边界是否出视野的第一步
+    bool leftMaybeOut_;
+    bool rightMaybeOut_;
+
+    //判断主体左右是否出视野的第二部，用最大灰度差值的平均值与阈值比较获得
+    float leftPixelDifferAvg_;
+    float rightPixelDifferAvg_;
 
     /**
      * @brief vertexes_ 从图像左上角开始，逆时针旋转一圈为顶点编号。
@@ -70,7 +81,8 @@ private:
                              int colRangeLeft,
                              int colRangeRight,
                              bool blockRight,
-                             float antiMessThreshold);
+                             float antiMessThreshold,
+                             float & pixelDifferAvg);
     std::vector<cv::Point2f> calcPointsThroughLine(cv::Vec4f inputLine,
                                                    unsigned int yCount);
     cv::Vec4f getTransposedLine(cv::Vec4f inputLine);

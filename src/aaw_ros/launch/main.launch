@@ -1,0 +1,8 @@
+<launch>
+    <!--<include file="$(find zed_wrapper)/launch/zedm.launch" />-->
+
+    <node pkg="aaw_ros" type="aaw_moveRobotServer" name="aaw_moveRobotServer"/>
+    <node pkg="aaw_ros" type="aaw_motorDriverServer_Up" name="aaw_motorDriverServer_Up"/>
+    <include file="$(find aaw_ros)/launch/visual_servo.launch" />
+
+</launch>

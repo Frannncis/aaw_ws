@@ -4,7 +4,7 @@ const int AAWMotorServer::reSendTimes_ = 3;
 const unsigned int AAWMotorServer::reSendCoolingSecs_ = 1;
 const int AAWMotorServer::reRecvTimes_ = 3;
 
-const unsigned int AAWMotorServer::recvTimeOutSecs_ = 1;    //所有控制指令都是立即返回的,所以超时1秒就够了.
+const unsigned int AAWMotorServer::recvTimeOutSecs_ = 10;    //所有控制指令都是立即返回的.
 
 //public member functions
 
@@ -220,10 +220,10 @@ int AAWMotorServer::recvResponse(const uint8_t * sendBuf) {
  * @return 返回1则代表指令执行成功，返回0则代表指令执行失败。
  */
 int AAWMotorServer::parseReceivedMsg(const uint8_t * sendBuf) {
-    for (int i = 0; i < 8; ++i) {
-        if (sendBuf[i] != response_[i])
-            return 0;
-    }
+    // for (int i = 0; i < 8; ++i) {
+    //     if (sendBuf[i] != response_[i])
+    //         return 0;
+    // }
     return 1;
 }
 

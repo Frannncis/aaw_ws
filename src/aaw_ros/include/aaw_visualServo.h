@@ -22,6 +22,9 @@
 #include <aaw_ros/BoltMotionCtrl.h>
 #include <aaw_ros/LDSMotionCtrl.h>
 #include <aaw_ros/UpdateCoordTransformer.h>
+#include <interaction/RestartRobotMotion.h>
+#include <interaction/MoveCar.h>
+#include <interaction/AdjustCarPos.h>
 #include <boost/bind.hpp>
 #include "aaw_originalCtrlVal.h"
 
@@ -31,7 +34,7 @@ namespace visualServo
     static const std::string Right_View = "Right View";
     const unsigned int timeWaitBeforeDocking_ = 1;   //seconds
 
-    bool toDock_ = true; //决定此次动作是对接还是分离,true为对接,false为分离，初始值设为false，是因为wakeUpActionCallback中会进行一次反转。
+    bool toDock_ = false; //决定此次动作是对接还是分离,true为对接,false为分离，初始值设为false，是因为wakeUpActionCallback中会进行一次反转。
     bool readyToGoHome_ = false;    //上方的插销动作完成后，将此标志设为true，进行回撤和回零点动作。
     bool taskFinished_ = true; //正式程序中，这个的初始值应该为true，等收到小车的信号再设为false.
     bool timeIntegrationChanged_ = false;
@@ -49,6 +52,11 @@ namespace visualServo
     ros::ServiceClient *boltMotionCtrlClientPtr;
     ros::ServiceClient *LDSMotionCtrlClientPtr;
     ros::ServiceClient *updateCoordTransClientPtr;
+
+    ros::ServiceClient *moveCarClientPtr;
+    ros::ServiceClient *adjustCarPosClientPtr;
+    ros::ServiceServer restartRobotMotion_;
+
     AAWIBVS *ibvsPtr;
 
     void showMsg(const char * msg);
@@ -74,9 +82,14 @@ namespace visualServo
     int pushOutLDS();
     int pullBackLDS();
 
-    bool wakeUpActionCallback();    //预留，接受小车信号进行下一次动作。
+    bool wakeUpAction();    //预留，接受小车信号进行下一次动作。
     int updateCoordTrans();
     void waitAndWakeUpAction();     //不与小车通信时用这个触发新的动作。
+
+    bool restartRobotMotionCallback(interaction::RestartRobotMotionRequest& requestMotion, interaction::RestartRobotMotionResponse& execStatus);
+    int askCarToMove();
+    int moveCarForwardALittle();
+    int moveCarBackwardALittle();
 }
 
 #endif
