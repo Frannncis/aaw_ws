@@ -43,6 +43,8 @@ namespace visualServo
     const unsigned int keepDockingSecs_ = 20;
     const unsigned int communicationRetryingTimes_ = 5;
     const float lowVelTimeIntegration_ = 0.4;   //senconds
+    std::vector<float> newCtrlVal_(originalCtrlVal_); //当物体与相机靠得太近时，用来处理并联机构侧移的控制量
+    float cameraStepBackLength_ = 20;   //物体与相机靠太近时，相机每次尝试后退的距离，单位为mm
 
     ros::ServiceClient *moveClientPtr;
     ros::ServiceClient *moveClientPtr_DistanceZ;
@@ -71,7 +73,7 @@ namespace visualServo
     void enableRobot();
     int withdrawAndGoHome();
     int withdraw();
-    int move2OriginalPos();
+    int move2Pos(std::vector<float> & robotCtrlVal);
     void checkAndChangeTimeIntegration();
 
     //上方直线运动模组控制相关函数
@@ -82,9 +84,9 @@ namespace visualServo
     int pushOutLDS();
     int pullBackLDS();
 
-    bool wakeUpAction();    //预留，接受小车信号进行下一次动作。
-    int updateCoordTrans();
-    void waitAndWakeUpAction();     //不与小车通信时用这个触发新的动作。
+    bool wakeUpAction();
+    int updateCoordTrans(std::vector<float> & robotCtrlVal);
+    void waitAndWakeUpAction();     //不与小车通信时用这个触发新的动作
 
     bool restartRobotMotionCallback(interaction::RestartRobotMotionRequest& requestMotion, interaction::RestartRobotMotionResponse& execStatus);
     int askCarToMove();

@@ -46,19 +46,44 @@ namespace visualServo {
         vg4Left = AAWVertexesGainer2(grayImageLeft);
         vg4Right = AAWVertexesGainer2(grayImageRight);
 
-        if (vg4Right.isLeftBoundOutaView()) {
-            ROS_WARN("Left of main body out of view!");
-            while (!moveCarForwardALittle())
-                    sleep(1);
-            sleep(1);
+        cv::imshow(Left_View, grayImageLeft);
+        cv::imshow(Right_View, grayImageRight);
+
+        //出现这种情况是因为相机与物体靠得太近，需要由并联机构进行位置调整，车前后动是解决不了的
+        //每次调整都需要updateCoordTrans(std::vector<float> & robotCtrlVal)传去并联机构位置调整后的控制量
+        if (vg4Right.isLeftBoundOutaView() && vg4Left.isRightBoundOutaView()) {
+            ROS_WARN("Camera too close to main body!");
+            newCtrlVal_[1] -= cameraStepBackLength_;    //并联机构沿其y轴方向后退
+
+            unsigned int commuRetryingCount_ = 0;
+            while ((commuRetryingCount_ < communicationRetryingTimes_) && !move2Pos(newCtrlVal_)) {
+                ++commuRetryingCount_;
+                showMsg("Retrying to move back camera...");
+                sleep(1);
+            }
+            if (commuRetryingCount_ >= communicationRetryingTimes_) {
+                errorMsg("Failed to move back camera!");
+            }
+
+            updateCoordTrans(newCtrlVal_);
             return;
         }
-        if (vg4Left.isRightBoundOutaView()) {
-            ROS_WARN("Right of main body out of view!");
-            while (!moveCarBackwardALittle())
+        //否则的话就是有一侧出视野，由小车前后动就可以完成，只要不动到并联机构，就不需要调用updateCoordTrans()
+        else {
+            if (vg4Right.isLeftBoundOutaView() || vg4Left.isLeftBoundOutaView()) {
+                ROS_WARN("Left of main body out of view!");
+                while (!moveCarForwardALittle())
+                        sleep(1);
+                sleep(1);   //发给小车的请求是立即返回的，所以需要等待小车动作结束，再进行图像读取
+                return;
+            }
+            if (vg4Left.isRightBoundOutaView() || vg4Right.isRightBoundOutaView()) {
+                ROS_WARN("Right of main body out of view!");
+                while (!moveCarBackwardALittle())
+                    sleep(1);
                 sleep(1);
-            sleep(1);
-            return;
+                return;
+            }
         }
         
         ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());
@@ -115,8 +140,8 @@ namespace visualServo {
             cameraVel = ibvsPtr->getCamCtrlVel();
             std::cout<<"Control velocity:\n"<<cameraVel<<std::endl;
 
-            cv::imshow(Left_View, grayImageLeft);
-            cv::imshow(Right_View, grayImageRight);
+            // cv::imshow(Left_View, grayImageLeft);
+            // cv::imshow(Right_View, grayImageRight);
 
             unsigned int commuRetryingCount_ = 0;
 
@@ -140,17 +165,25 @@ namespace visualServo {
         taskFinished_ = false;
         timeIntegrationChanged_ = false;
         enableRobot();
-        updateCoordTrans();
+        updateCoordTrans(originalCtrlVal_);
+        newCtrlVal_.clear();
+        newCtrlVal_.assign(originalCtrlVal_.begin(), originalCtrlVal_.end());
     }
 
     /**
      * 请求更新坐标变换类对象，原先的已经不能用了，每一次新的伺服进行之前都需要更新，更新之前确保并联机器人已经在零点了。
      */
-    int updateCoordTrans()
+    int updateCoordTrans(std::vector<float> & robotCtrlVal)
     {
         aaw_ros::UpdateCoordTransformer updateCoordTransSrv;
         updateCoordTransSrv.request.newTransformer = true;
-        
+        updateCoordTransSrv.request.x = robotCtrlVal[0];
+        updateCoordTransSrv.request.y = robotCtrlVal[1];
+        updateCoordTransSrv.request.z = robotCtrlVal[2];
+        updateCoordTransSrv.request.a = robotCtrlVal[3];
+        updateCoordTransSrv.request.b = robotCtrlVal[4];
+        updateCoordTransSrv.request.c = robotCtrlVal[5];
+
         unsigned int commuRetryingCount_ = 0;
 
         while ((commuRetryingCount_ < communicationRetryingTimes_) && !(updateCoordTransClientPtr->call(updateCoordTransSrv))) {
@@ -164,7 +197,6 @@ namespace visualServo {
             return 1;   //只要能返回，就是成功的.
     }
 
-    //循环动作时才需要
     void waitAndWakeUpAction()
     {
         sleep(3);
@@ -290,7 +322,7 @@ namespace visualServo {
         // }
 
         //事实上这里处理的不仅仅是通信失败的情况，还有并联机构收到指令但执行失败的情况
-        //参见dock()和move2OriginalPos()函数，当通信成功时返回的是机器人返回指令的解析结果。
+        //参见dock()和move2Pos()函数，当通信成功时返回的是机器人返回指令的解析结果。
         //由于undock即使有重复发送的增量数据，过程也是安全的，因此允许多次尝试。
         unsigned int commuRetryingCount_ = 0;
 
@@ -311,7 +343,7 @@ namespace visualServo {
         //trying to go home
         commuRetryingCount_ = 0;
         showMsg("Now trying to go home...");
-        while ((commuRetryingCount_ < communicationRetryingTimes_) && !move2OriginalPos()) {
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !move2Pos(originalCtrlVal_)) {
             ++commuRetryingCount_;
             showMsg("Retrying to go home...");
             sleep(1);
@@ -344,15 +376,15 @@ namespace visualServo {
 
     /* 回零点控制。
      */
-    int move2OriginalPos()
+    int move2Pos(std::vector<float> & robotCtrlVal)
     {
         aaw_ros::MoveRobot_CtrlVal moveCtrlValSrv;
-        moveCtrlValSrv.request.x = originalCtrlVal_[0];
-        moveCtrlValSrv.request.y = originalCtrlVal_[1];
-        moveCtrlValSrv.request.z = originalCtrlVal_[2];
-        moveCtrlValSrv.request.a = originalCtrlVal_[3];
-        moveCtrlValSrv.request.b = originalCtrlVal_[4];
-        moveCtrlValSrv.request.c = originalCtrlVal_[5];
+        moveCtrlValSrv.request.x = robotCtrlVal[0];
+        moveCtrlValSrv.request.y = robotCtrlVal[1];
+        moveCtrlValSrv.request.z = robotCtrlVal[2];
+        moveCtrlValSrv.request.a = robotCtrlVal[3];
+        moveCtrlValSrv.request.b = robotCtrlVal[4];
+        moveCtrlValSrv.request.c = robotCtrlVal[5];
 
         if (moveClientPtr_CtrlVal->call(moveCtrlValSrv)) {
             ROS_INFO("Feedback from server: %d", moveCtrlValSrv.response.ExecStatus);

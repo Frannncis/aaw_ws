@@ -48,21 +48,24 @@ void imageCb(const sensor_msgs::ImageConstPtr& leftImage, const sensor_msgs::Ima
     cv::GaussianBlur(grayImageRight, grayImageRight, cv::Size(3,3),0,0);
     vg4Left = AAWVertexesGainer2(grayImageLeft);
     vg4Right = AAWVertexesGainer2(grayImageRight);
-    // if (vg4Left.isLeftBoundOutaView())
-    // {
-    //     ROS_WARN("LeftView: left bound out of view!");
-    // }
-    // if (vg4Left.isRightBoundOutaView()) {
-    //     ROS_WARN("LeftView: right bound out of view!");
-    // }
+    if (vg4Left.isLeftBoundOutaView())
+    {
+        ROS_WARN("LeftView: left bound out of view!");
+    }
+    if (vg4Left.isRightBoundOutaView()) {
+        ROS_WARN("LeftView: right bound out of view!");
+    }
 
-    // if (vg4Right.isLeftBoundOutaView())
-    // {
-    //     ROS_WARN("RightView: left bound out of view!");
-    // }
-    // if (vg4Right.isRightBoundOutaView()) {
-    //     ROS_WARN("RightView: right bound out of view!");
-    // }
+    if (vg4Right.isLeftBoundOutaView())
+    {
+        ROS_WARN("RightView: left bound out of view!");
+    }
+    if (vg4Right.isRightBoundOutaView()) {
+        ROS_WARN("RightView: right bound out of view!");
+    }
+    if (vg4Right.isLeftBoundOutaView() && vg4Left.isRightBoundOutaView()) {
+        ROS_WARN("Too close!");
+    }
     
 
     ibvsPtr->updateVertexesCoordinates(vg4Left.get4Vertexes(), vg4Right.get4Vertexes());

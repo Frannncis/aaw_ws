@@ -24,7 +24,7 @@ const float AAWVertexesGainer2::rightTakesInRatio_ = 0.75;
 const float AAWVertexesGainer2::downTakesInRatio_ = 0.5;
 
 //判断左右边界是否出视野所用的像素最大灰度差值的平均值
-const float AAWVertexesGainer2::outaView_PixelDifferAvgThreshold_ = 5.0;
+const float AAWVertexesGainer2::outaView_PixelDifferAvgThreshold_ = 7.0;
 
 //将图像稀疏处理的倍数，用来提高找主体的速度。越大越快，越小越精确。
 const int AAWVertexesGainer2::sparceRatio_ = 10;
@@ -83,26 +83,28 @@ std::vector<cv::Point2f> AAWVertexesGainer2::get4Vertexes() const
 
 bool AAWVertexesGainer2::isLeftBoundOutaView()
 {
-    if (leftMaybeOut_) {
+    // std::cout<<"leftPixelDifferAvg_ = "<<leftPixelDifferAvg_<<"\n";
+    // if (leftMaybeOut_) {
         if (leftPixelDifferAvg_ < outaView_PixelDifferAvgThreshold_)
             return true;
         else
             return false;
-    }
-    else
-        return false;
+    // }
+    // else
+    //     return false;
 }
 
 bool AAWVertexesGainer2::isRightBoundOutaView()
 {
-    if (rightMaybeOut_) {
+    // std::cout<<"rightPixelDifferAvg_ = "<<rightPixelDifferAvg_<<"\n";
+    // if (rightMaybeOut_) {
         if (rightPixelDifferAvg_ < outaView_PixelDifferAvgThreshold_)
             return true;
         else
             return false;
-    }
-    else
-        return false;
+    // }
+    // else
+    //     return false;
 }
 
 //私有成员函数

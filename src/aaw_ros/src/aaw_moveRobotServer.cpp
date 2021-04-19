@@ -7,6 +7,9 @@
  */
 AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehandle)
 {
+    //必须先有值，不然直接用[]访问元素会出现内存错误
+    ctrlVal_.assign(originalCtrlVal_.begin(), originalCtrlVal_.end());
+
     moveRobot_camVel_ = nh_.advertiseService("move_robot_input_camVel", &AAWMoveRobotServer::camVelInputCallback, this);
     moveRobot_distanceZ_ = nh_.advertiseService("move_robot_input_distanceZ", &AAWMoveRobotServer::distanceZInputCallback, this);
     moveRobot_ctrlVal_ = nh_.advertiseService("move_robot_input_ctrlVal", &AAWMoveRobotServer::ctrlValInputCallback, this);
@@ -121,7 +124,8 @@ bool AAWMoveRobotServer::updateCoordTransCallback(aaw_ros::UpdateCoordTransforme
 {
     if (req.newTransformer == true) {
         delete coordTransformerPtr_;
-        coordTransformerPtr_ = new AAWCoordTransform(originalCtrlVal_);
+        std::vector<float> newCtrlVal{req.x, req.y, req.z, req.a, req.b, req.c};
+        coordTransformerPtr_ = new AAWCoordTransform(newCtrlVal);
         res.ExecStatus = 1;
     }
     return true;
