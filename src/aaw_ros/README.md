@@ -13,5 +13,7 @@ Created and maintained by Zhangping Wang.
 给上方步进电机及其控制器上电后，确定能ping无线控制器IP后（路由器DHCP池从192.168.0.100开始依次分配），在终端输入'rosrun aaw_ros aaw_motorDriverServer_Up'，待显示The top motor is ready for drive control!即可接受运动控制。
 ## 5. 启动视觉伺服
 在完成步骤3后，终端输入'roslaunch aaw_ros visual_servo.launch'开始视觉伺服，并联机构会从当前位姿主动找准到期望位姿，并完成对接、等待、分离、下使能机器人等动作。
+## 6.一次启动所有节点
+在终端中输入'roslaunch aaw_ros main.launch'，操作并联机构示教器连接到远程控制服务端。待机构回零点并自动下使能后，启动小车的控制节点，当前操作方式为：在终端中切换到su模式，输入'source /opt/ros/kinetic/setup.bash', 'source aaw_ws/devel/setup.bash', 以及'rosrun canbus can_cmd'。而后打开新的终端，输入'rosservice call /restart_robot_motion_service "ToMove: true"'以启动自动对接系统和小车的循环对接与分离动作。
 
 ...(待完成)
