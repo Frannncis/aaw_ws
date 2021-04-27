@@ -47,7 +47,7 @@ cs_add_executable(aaw_moveRobotServer src/aaw_moveRobotServer.cpp src/aawtcpserv
 cs_add_executable(aaw_getDesiredCoordsOnNP src/aaw_getDesiredCoordsOnNP.cpp src/aawvertexesgainer2.cpp src/aawibvs.cpp)
 cs_add_executable(aaw_motorDriverServer_Up src/aaw_motorDriverServer_Up.cpp src/aawserver4motor.cpp)
 cs_add_executable(aaw_motorDriverServer_Side src/aaw_motorDriverServer_Side.cpp src/aawserver4motor.cpp)
-
+cs_add_executable(aaw_weightSensorDataReader src/aaw_weightSensorDataReader.cpp)
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package
@@ -59,10 +59,6 @@ target_link_libraries( aaw_getDesiredCoordsOnNP ${OpenCV_LIBS})
 
 cs_install()
 cs_export()
-
-# find_package(catkin REQUIRED COMPONENTS
-#   roscpp
-# )
 
 # add_library(moveCarServer
 #   # )

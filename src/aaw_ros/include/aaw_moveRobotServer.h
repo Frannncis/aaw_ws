@@ -8,6 +8,7 @@
 #include "aaw_ros/ChangeRobotStatus.h"
 #include "aaw_ros/ChangeTimeIntegration.h"
 #include "aaw_ros/UpdateCoordTransformer.h"
+#include "aaw_ros/CurrentRobotCtrlVal.h"
 #include <iostream>
 #include <vector>
 #include "aawtcpserver.h"
@@ -28,11 +29,13 @@ private:
     ros::ServiceServer changeRobotStatus_;
     ros::ServiceServer changeTimeIntegration_;
     ros::ServiceServer updateCoordTransformer_;
+    ros::Publisher robotCtrlValPub_;
 
     AAWTCPServer *myTCPServerPtr_;
     AAWCoordTransform *coordTransformerPtr_;
 
     std::vector<float> ctrlVal_;
+    aaw_ros::CurrentRobotCtrlVal ctrlValMsg_;
 
     void AAWEnableRobot();
     void AAWDisableRobot();
@@ -42,6 +45,7 @@ private:
     bool changeRobotStatusCallback(aaw_ros::ChangeRobotStatusRequest& requestStatus, aaw_ros::ChangeRobotStatusResponse& execStatus);
     bool changeTimeIntegCallback(aaw_ros::ChangeTimeIntegrationRequest& reqTimeInteg, aaw_ros::ChangeTimeIntegrationResponse& execStatus);
     bool updateCoordTransCallback(aaw_ros::UpdateCoordTransformerRequest& req, aaw_ros::UpdateCoordTransformerResponse& res);
+    void pubCtrlVal();
 };
 
 #endif

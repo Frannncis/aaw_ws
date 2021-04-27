@@ -319,7 +319,7 @@ std::vector<cv::Vec4i> AAWVertexesGainer2::getImageROI(cv::Mat & inputImage, std
  * @param startRow ROI的开始行号
  * @param endRow ROI的结束行号
  * @param colRangeLeft ROI的开始列号
- * @param colRangeRight ROI的技术列号
+ * @param colRangeRight ROI的结束列号
  * @param blockRight 主体是否在要拟合的直线的右侧？主要是用来消除主体之外的大灰度梯度物体干扰的
  * @param antiMessThreshold 消除主体之外干扰的阈值，偏移初始拟合直线超过这个阈值数量像素点的点会被剔除
  * @return 返回拟合的直线参数，前两位为方向向量，后两位为直线上一点

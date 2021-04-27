@@ -16,6 +16,7 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
     changeRobotStatus_ = nh_.advertiseService("change_robot_status_service", &AAWMoveRobotServer::changeRobotStatusCallback, this);
     changeTimeIntegration_ = nh_.advertiseService("change_time_integration_service", &AAWMoveRobotServer::changeTimeIntegCallback, this);
     updateCoordTransformer_ = nh_.advertiseService("update_coord_trans_service", &AAWMoveRobotServer::updateCoordTransCallback, this);
+    robotCtrlValPub_ = nh_.advertise<aaw_ros::CurrentRobotCtrlVal>("current_robot_ctrl_val", 1);
 
     myTCPServerPtr_ = new AAWTCPServer(3000);
     std::vector<float> velAcc{5, 10, 10, 10};
@@ -26,6 +27,7 @@ AAWMoveRobotServer::AAWMoveRobotServer(ros::NodeHandle* nodehandle):nh_(*nodehan
 
     while(!(myTCPServerPtr_->move(originalCtrlVal_)))
         sleep(1);
+    pubCtrlVal();
     std::cout<<"Moved to original pos, ready to accept visual servo control!\n";
     AAWDisableRobot();
 
@@ -58,7 +60,8 @@ bool AAWMoveRobotServer::camVelInputCallback(aaw_ros::MoveRobotRequest& requestC
     ctrlVal_.clear();
     ctrlVal_ = coordTransformerPtr_->getCtrlVal(camVel);
     execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
-    
+    pubCtrlVal();
+
     return true;
 }
 
@@ -71,11 +74,13 @@ bool AAWMoveRobotServer::distanceZInputCallback(aaw_ros::MoveRobot_DistanceZRequ
     {
         ctrlVal_[2] += requestDistanceZ.goUpDistance;
         execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
+        pubCtrlVal();
         return true;
     }
     else {
         ctrlVal_[2] -= requestDistanceZ.goDownDistance;
         execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
+        pubCtrlVal();
         return true;
     }
 }
@@ -92,7 +97,20 @@ bool AAWMoveRobotServer::ctrlValInputCallback(aaw_ros::MoveRobot_CtrlValRequest&
     ctrlVal_[4] = requestCtrlVal.b;
     ctrlVal_[5] = requestCtrlVal.c;
     execStatus.ExecStatus = myTCPServerPtr_->move(ctrlVal_);
+    pubCtrlVal();
     return true;
+}
+
+//广播并联机构当前的控制量
+void AAWMoveRobotServer::pubCtrlVal()
+{
+    ctrlValMsg_.x = ctrlVal_[0];
+    ctrlValMsg_.y = ctrlVal_[1];
+    ctrlValMsg_.z = ctrlVal_[2];
+    ctrlValMsg_.a = ctrlVal_[3];
+    ctrlValMsg_.b = ctrlVal_[4];
+    ctrlValMsg_.c = ctrlVal_[5];
+    robotCtrlValPub_.publish(ctrlValMsg_);
 }
 
 /* 控制并联机器人下使能的回调函数。

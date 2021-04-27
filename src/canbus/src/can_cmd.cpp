@@ -51,10 +51,10 @@ double sec1 = 0;
 double sec2 = 0;
 unsigned int cycle = 0;
 float targetspeed = 0.2;
-float forwardtime = 10;
+float forwardtime = 8;
 float backtime = 10;
-float creeptime = 1;
-float creepspeed = 0.15;
+float creeptime = 0.5;
+float creepspeed = 0.12;
 ros::Timer timer1;
 ros::Timer timer2;
 ros::Timer timer4Creeping;
@@ -451,7 +451,7 @@ void movebackward(){
     timer1.setPeriod(ros::Duration(backtime));
     timer1.start();
     timer2.stop();
-    timer2.setPeriod(ros::Duration(backtime+10));
+    timer2.setPeriod(ros::Duration(backtime+8));
     timer2.start();
 }
 

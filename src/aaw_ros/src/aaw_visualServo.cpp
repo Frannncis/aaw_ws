@@ -10,22 +10,17 @@ namespace visualServo {
             return;
 
         if (readyToGoHome_) {
-            if (withdrawAndGoHome()) {
-                if (toDock_)
-                    showMsg("Docking completed!");
-                else
-                    showMsg("Undocking completed!");
-                taskFinished_ = true;
-                disableRobot();
-                // waitAndWakeUpAction();
-                while (!askCarToMove()) //执行结束，让小车移动
-                    sleep(1);
-                return;
-            }
-            else {
-                disableRobot();
-                errorMsg("Task failed!");
-            }
+            withdrawAndGoHome();
+            if (toDock_)
+                showMsg("Docking completed!");
+            else
+                showMsg("Undocking completed!");
+            taskFinished_ = true;
+            disableRobot();
+            // waitAndWakeUpAction();
+            // while (!askCarToMove()) //执行结束，让小车移动
+            //     sleep(1);
+            return;
         }
 
         cv_bridge::CvImagePtr cv_ptr_left, cv_ptr_right;
@@ -55,15 +50,7 @@ namespace visualServo {
             ROS_WARN("Camera too close to main body!");
             newCtrlVal_[1] -= cameraStepBackLength_;    //并联机构沿其y轴方向后退
 
-            unsigned int commuRetryingCount_ = 0;
-            while ((commuRetryingCount_ < communicationRetryingTimes_) && !move2Pos(newCtrlVal_)) {
-                ++commuRetryingCount_;
-                showMsg("Retrying to move back camera...");
-                sleep(1);
-            }
-            if (commuRetryingCount_ >= communicationRetryingTimes_) {
-                errorMsg("Failed to move back camera!");
-            }
+            ensureMove2Pos(newCtrlVal_);
 
             updateCoordTrans(newCtrlVal_);
             return;
@@ -72,14 +59,14 @@ namespace visualServo {
         else {
             if (vg4Right.isLeftBoundOutaView() || vg4Left.isLeftBoundOutaView()) {
                 ROS_WARN("Left of main body out of view!");
-                while (!moveCarForwardALittle())
-                        sleep(1);
+                while (!carCreepingForward())
+                    sleep(1);
                 sleep(1);   //发给小车的请求是立即返回的，所以需要等待小车动作结束，再进行图像读取
                 return;
             }
             if (vg4Left.isRightBoundOutaView() || vg4Right.isRightBoundOutaView()) {
                 ROS_WARN("Right of main body out of view!");
-                while (!moveCarBackwardALittle())
+                while (!carCreepingBackward())
                     sleep(1);
                 sleep(1);
                 return;
@@ -95,40 +82,28 @@ namespace visualServo {
 
             //dock
             ROS_WARN("Desired pos arrived, now trying to dock, watch out!");
-            sleep(timeWaitBeforeDocking_);
-
-            unsigned int commuRetryingCount_ = 0;
-
-            while((commuRetryingCount_ < communicationRetryingTimes_) && !dock()) {
-                ++commuRetryingCount_;
-                showMsg("Retrying to call moveRobotServer...");
-                sleep(1);
-            }
-            if (commuRetryingCount_ >= communicationRetryingTimes_) {
-                errorMsg("Communication with service \"move_robot_input_distanceZ\" failed!");
-            }
-            else {
-                //到这里就代表并联机构已经托住弹体了，接下来区分是插入插销还是拔出插销了
-                if (toDock_) {
-                    //插入
-                    if (insertBolt()) {
-                        showMsg("Docking completed!");
-                        readyToGoHome_ = true;
-                        return;
-                    }
-                    else {
-                        errorMsg("Bolt insertion failed!");
-                    }
+            ensureDock();
+            
+            //到这里就代表并联机构已经托住弹体了，接下来区分是插入插销还是拔出插销了
+            if (toDock_) {
+                //插入
+                if (insertBolt()) {
+                    showMsg("Docking completed!");
+                    readyToGoHome_ = true;
+                    return;
                 }
                 else {
-                    if (pullOutBolt()) {
-                        showMsg("Undocking completed!");
-                        readyToGoHome_ = true;
-                        return;
-                    }
-                    else {
-                        errorMsg("Bolt pulling out failed!");
-                    }
+                    errorMsg("Bolt insertion failed!");
+                }
+            }
+            else {
+                if (pullOutBolt()) {
+                    showMsg("Undocking completed!");
+                    readyToGoHome_ = true;
+                    return;
+                }
+                else {
+                    errorMsg("Bolt pulling out failed!");
                 }
             }
         }
@@ -143,22 +118,14 @@ namespace visualServo {
             // cv::imshow(Left_View, grayImageLeft);
             // cv::imshow(Right_View, grayImageRight);
 
-            unsigned int commuRetryingCount_ = 0;
-
-            while ((commuRetryingCount_ < communicationRetryingTimes_) && !visualServoRobot(cameraVel)) {
-                ++commuRetryingCount_;
-                showMsg("Retrying visual servo...");
-                sleep(1);
-            }
-            if (commuRetryingCount_ > communicationRetryingTimes_) {
-                errorMsg("Visual servo error!");
-            }
+            ensureVisualServoRobot(cameraVel);
         }
         
         cv::waitKey(3);
     }
 
-    bool wakeUpAction()
+    //重启并联机器人动作
+    void wakeUpAction()
     {
         toDock_ = !toDock_; //反转上方插销动作,其他的过程都一样，更新一下初始值即可。
         readyToGoHome_ = false;
@@ -171,7 +138,7 @@ namespace visualServo {
     }
 
     /**
-     * 请求更新坐标变换类对象，原先的已经不能用了，每一次新的伺服进行之前都需要更新，更新之前确保并联机器人已经在零点了。
+     * 请求更新坐标变换类对象，每一次使用ensureMove2Pos()驱动并联机器人，并要开始伺服之前都需要调用此函数
      */
     int updateCoordTrans(std::vector<float> & robotCtrlVal)
     {
@@ -199,14 +166,15 @@ namespace visualServo {
 
     void waitAndWakeUpAction()
     {
-        sleep(3);
+        sleep(5);
         wakeUpAction();
     }
 
     bool restartRobotMotionCallback(interaction::RestartRobotMotionRequest& requestMotion, interaction::RestartRobotMotionResponse& execStatus)
     {
         if (requestMotion.ToMove == true) {
-            waitAndWakeUpAction();
+            sleep(3);
+            wakeUpAction();
             execStatus.ExecStatus = 1;
         }
         else
@@ -214,6 +182,35 @@ namespace visualServo {
         return true;
     }
 
+    //接收并处理力传感器的信息
+    void weightSensorDataCallback(const aaw_ros::WeightSensorData::ConstPtr & msg)
+    {
+        if (msg->weight >= outaSecurityWeight_)
+            std::cerr<<"Weight is "<<msg->weight<<", overloaded!\n";
+        withdrawAndRestartServo();
+    }
+
+    //获取并联机构当前的控制量
+    void robotCtrlValCallback(const aaw_ros::CurrentRobotCtrlVal::ConstPtr & msg)
+    {
+        currentCtrlVal_[0] = msg->x;
+        currentCtrlVal_[1] = msg->y;
+        currentCtrlVal_[2] = msg->z;
+        currentCtrlVal_[3] = msg->a;
+        currentCtrlVal_[4] = msg->b;
+        currentCtrlVal_[5] = msg->c;
+    }
+
+    //当力传感器接收到异常数据时，安全撤回并联机构并重新启动伺服
+    void withdrawAndRestartServo()
+    {
+        ensureWithdraw(currentCtrlVal_[2]-originalCtrlVal_[2]);
+        ensureMove2Pos(originalCtrlVal_);
+        wakeUpAction();
+        toDock_ = !toDock_; //把wakeUpAction()里反转的状态反转回来
+    }
+
+    //完成一次对接或者分离动作，给小车发送运动指令
     int askCarToMove()
     {
         sleep(3);
@@ -232,7 +229,8 @@ namespace visualServo {
             return moveCarSrv.response.ExecStatus;
     }
 
-    int moveCarForwardALittle()
+    //向前微调小车位置
+    int carCreepingForward()
     {
         interaction::AdjustCarPos adjustCarPosSrv;
         adjustCarPosSrv.request.MoveForward = true;
@@ -249,7 +247,8 @@ namespace visualServo {
             return adjustCarPosSrv.response.ExecStatus;
     }
 
-    int moveCarBackwardALittle()
+    //向后微调小车位置
+    int carCreepingBackward()
     {
         interaction::AdjustCarPos adjustCarPosSrv;
         adjustCarPosSrv.request.MoveForward = false;
@@ -290,9 +289,22 @@ namespace visualServo {
         }
     }
 
+    void ensureDock()
+    {
+        unsigned int commuRetryingCount_ = 0;
+        while((commuRetryingCount_ < communicationRetryingTimes_) && !dock()) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call moveRobotServer...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_) {
+            errorMsg("Communication with service \"move_robot_input_distanceZ\" failed!");
+        }
+    }
+
     /* 视觉伺服速度控制请求函数，执行失败时允许重复请求。
      */
-    int visualServoRobot(Eigen::Matrix<float, 6, 1> camCtrlVel)
+    int visualServoRobot(Eigen::Matrix<float, 6, 1> & camCtrlVel)
     {
         aaw_ros::MoveRobot moveSrv;
         moveSrv.request.vx = camCtrlVel(0);
@@ -312,58 +324,41 @@ namespace visualServo {
         }
     }
 
+    void ensureVisualServoRobot(Eigen::Matrix<float, 6, 1> & camCtrlVel)
+    {
+        unsigned int commuRetryingCount_ = 0;
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !visualServoRobot(camCtrlVel)) {
+            ++commuRetryingCount_;
+            showMsg("Retrying visual servo...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_) {
+            errorMsg("Visual servo error!");
+        }
+    }
+
     /* 实现并联机构回撤、回零点控制。当上方的插销动作完成之后就调用该函数进行处理。
      */
-    int withdrawAndGoHome()
+    void withdrawAndGoHome()
     {
-        // for (unsigned int i = keepDockingSecs_; i > 0; --i) {
-        //     std::cout<<"Undocking countdown: "<<i<<"s\n";
-        //     sleep(1);
-        // }
-
         //事实上这里处理的不仅仅是通信失败的情况，还有并联机构收到指令但执行失败的情况
-        //参见dock()和move2Pos()函数，当通信成功时返回的是机器人返回指令的解析结果。
-        //由于undock即使有重复发送的增量数据，过程也是安全的，因此允许多次尝试。
-        unsigned int commuRetryingCount_ = 0;
-
         //trying to withdraw
         ROS_WARN("Now trying to withdraw, watch out!");
-        while ((commuRetryingCount_ < communicationRetryingTimes_) && !withdraw()) {
-            ++commuRetryingCount_;
-            showMsg("Retrying to withdraw...");
-            sleep(1);
-        }
-        if (commuRetryingCount_ >= communicationRetryingTimes_) {
-            errorMsg("Withdraw failed!");
-        }
-        else {
-            showMsg("Withdraw completed!");
-        }
+        ensureWithdraw(moveDownDistance_);
 
         //trying to go home
-        commuRetryingCount_ = 0;
         showMsg("Now trying to go home...");
-        while ((commuRetryingCount_ < communicationRetryingTimes_) && !move2Pos(originalCtrlVal_)) {
-            ++commuRetryingCount_;
-            showMsg("Retrying to go home...");
-            sleep(1);
-        }
-        if (commuRetryingCount_ >= communicationRetryingTimes_) {
-            errorMsg("Going home failed!");
-        }
-        else {
-            showMsg("Moved to original pos!");
-            return 1;
-        }
+        ensureMove2Pos(originalCtrlVal_);
+        showMsg("Going home completed!");
     }
 
     /*　并联机构向下收回动作。
      */
-    int withdraw()
+    int withdraw(float distance)
     {
         aaw_ros::MoveRobot_DistanceZ moveDistanceSrv;
         moveDistanceSrv.request.isUp = false;
-        moveDistanceSrv.request.goDownDistance = moveDownDistance_;
+        moveDistanceSrv.request.goDownDistance = distance;
         if (moveClientPtr_DistanceZ->call(moveDistanceSrv)) {
             ROS_INFO("Feedback from server: %d", moveDistanceSrv.response.ExecStatus);
             return moveDistanceSrv.response.ExecStatus;
@@ -371,6 +366,20 @@ namespace visualServo {
         else {
             ROS_ERROR("Failed to call service \"move_robot_input_distanceZ\"");
             return 0;
+        }
+    }
+
+    //能返回就一定成功执行了指令
+    void ensureWithdraw(float distance)
+    {
+        unsigned int commuRetryingCount_ = 0;
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !withdraw(distance)) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to withdraw...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_) {
+            errorMsg("Withdraw failed!");
         }
     }
 
@@ -393,6 +402,20 @@ namespace visualServo {
         else {
             ROS_ERROR("Failed to call service \"move_robot_input_ctrlVal\"");
             return 0;
+        }
+    }
+
+    //能返回就一定成功执行了指令
+    void ensureMove2Pos(std::vector<float> & robotCtrlVal)
+    {
+        unsigned int commuRetryingCount_ = 0;
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !move2Pos(robotCtrlVal)) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to move to pos...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_) {
+            errorMsg("Move to pos failed!");
         }
     }
 
@@ -598,6 +621,9 @@ int main(int argc, char** argv) {
     ros::ServiceClient adjustCarPosClient = nh_.serviceClient<interaction::AdjustCarPos>("adjust_car_pos_service");
     restartRobotMotion_ = nh_.advertiseService("restart_robot_motion_service", &restartRobotMotionCallback);
 
+    weightSensorSub_ = nh_.subscribe("weigt_sensor_data", 1, &weightSensorDataCallback);
+    robotCtrlValSub_ = nh_.subscribe("current_robot_ctrl_val", 1, &robotCtrlValCallback);
+
     moveClientPtr = &moveClient;
     moveClientPtr_DistanceZ = &moveClient_DistanceZ;
     moveClientPtr_CtrlVal = &moveClient_CtrlVal;
@@ -616,11 +642,6 @@ int main(int argc, char** argv) {
     cv::namedWindow(Right_View, cv::WINDOW_NORMAL);
     cv::resizeWindow(Right_View, 800, 450);
     ros::Duration timer(0.1);
-
-    //不与小车协同才需要这一部分.
-/*    showMsg("Visual servo will start in 5 senconds.");
-    sleep(5);
-    wakeUpAction(); */
 
     while (ros::ok()) {
         ros::spinOnce();

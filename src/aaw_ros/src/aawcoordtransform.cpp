@@ -12,7 +12,7 @@ const float AAWCoordTransform::offset_CFvsRF_Y = 258;
 const float AAWCoordTransform::offset_CFvsRF_Z = 435;
 
 //单位为秒，速度转换成位移用到的时间间隔，太小会导致伺服很慢，太大会导致伺服终点精度不高。不满足需求时可考虑改成动态的。
-float AAWCoordTransform::timeIntegration_ = 0.8;
+float AAWCoordTransform::timeIntegration_ = 1.0;//0.8;
 
 //public member functions
 
