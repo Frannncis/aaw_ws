@@ -9,6 +9,7 @@ AAWWeightSensorReader::AAWWeightSensorReader(ros::NodeHandle* nodehandle):nh_(*n
     if (!openSerialPort("/dev/ttyUSB0"))
         errorMsg("Unable to open port!");
     setFrequency(set12HZ_);
+    resetWeightValue2Zero();
 }
 
 AAWWeightSensorReader::~AAWWeightSensorReader()
@@ -52,6 +53,15 @@ void AAWWeightSensorReader::setCommand()
     set12HZ_[5] = 0x00;
     set12HZ_[6] = 0x88;
     set12HZ_[7] = 0x0F;
+
+    reset_[0] = 0x01;
+    reset_[1] = 0x06;
+    reset_[2] = 0x00;
+    reset_[3] = 0x11;
+    reset_[4] = 0x00;
+    reset_[5] = 0x01;
+    reset_[6] = 0x18;
+    reset_[7] = 0x0F;
 }
 
 //返回1开启成功，返回0开启失败
@@ -84,6 +94,13 @@ int AAWWeightSensorReader::openSerialPort(const std::string & port)
 void AAWWeightSensorReader::setFrequency(const uint8_t * sendBuffer)
 {
     serialPort_.write(sendBuffer, 8);
+    serialPort_.read(readBuffer_, 8);
+}
+
+//力传感器去皮操作，即把当前的重量设为0,就是一个自动增量计算，不是校准操作
+void AAWWeightSensorReader::resetWeightValue2Zero()
+{
+    serialPort_.write(reset_, 8);
     serialPort_.read(readBuffer_, 8);
 }
 

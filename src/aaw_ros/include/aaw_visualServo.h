@@ -56,7 +56,7 @@ namespace visualServo
     const float lowVelTimeIntegration_ = 0.4;   //senconds
     std::vector<float> newCtrlVal_(originalCtrlVal_); //当物体与相机靠得太近时，用来处理并联机构侧移的控制量
     float cameraStepBackLength_ = 20;   //物体与相机靠太近时，相机每次尝试后退的距离，单位为mm
-    const int outaSecurityWeight_ = 3000; //实际使用时需要在运行前将力传感器的数据归零，这样才有意义
+    const int outaSecurityWeight_ = 500; //此为增量
     std::vector<float> currentCtrlVal_(originalCtrlVal_);
 
     ros::ServiceClient *moveClientPtr;
