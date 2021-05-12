@@ -3,7 +3,6 @@
 
 #include <ros/ros.h>
 #include <iostream>
-#include <ros/ros.h>
 #include <cstring>
 #include <serial/serial.h>
 #include <aaw_ros/WeightSensorData.h>
@@ -32,7 +31,7 @@ private:
     int openSerialPort(const std::string & port);
     void setFrequency(const uint8_t * sendBuffer);
     int getWeight();
-    void showBytesRead(const uint8_t* buffer, size_t size);
+    void showBytesRead(const uint8_t * buffer, size_t size);
     int extractWeight(const uint8_t * buffer);
 
     void errorMsg(const char * msg);

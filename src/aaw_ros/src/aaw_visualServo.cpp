@@ -80,9 +80,25 @@ namespace visualServo {
             // cv::destroyWindow(Left_View);
             // cv::destroyWindow(Right_View);
 
+            //读取侧边的激光位移传感器的数据，确保物体在相机Z轴方向的深度满足要求
+            //还需要取消wakeUpAction()函数中的相关注释
+            // adjustSideDistance();
+            // turnOffQuietLDS();
+
+            //推出并打开测量对接体凹槽深度的激光位传感器，确保该方向满足尺寸要求，如果是分离，则这一步省略
+            //未启测量凹槽深度的激光位移传感器时注释掉该if语句
+            // if (toDock_) {
+            //     turnOnLocomLDS(); //先启动，会有启动时间，不能立即读数据
+            //     pushOutLDS();
+            //     getDockingDistance();
+            //     sleep(1); //这一秒是必须的，否则可能会出现推杆收不回来的情况
+            //     pullBackLDS();
+            //     turnOffLocomLDS();
+            // }
+
             //dock
             ROS_WARN("Desired pos arrived, now trying to dock, watch out!");
-            ensureDock();
+            ensureDock(moveUpDistance_);
             
             //到这里就代表并联机构已经托住弹体了，接下来区分是插入插销还是拔出插销了
             if (toDock_) {
@@ -135,6 +151,9 @@ namespace visualServo {
         updateCoordTrans(originalCtrlVal_);
         newCtrlVal_.clear();
         newCtrlVal_.assign(originalCtrlVal_.begin(), originalCtrlVal_.end());
+
+        //启用侧面的激光位移传感器时，伺服过程开始就打开，给予其冷却时间
+        // turnOnQuietLDS();
     }
 
     /**
@@ -173,7 +192,7 @@ namespace visualServo {
     bool restartRobotMotionCallback(interaction::RestartRobotMotionRequest& requestMotion, interaction::RestartRobotMotionResponse& execStatus)
     {
         if (requestMotion.ToMove == true) {
-            sleep(3);
+            sleep(1);
             wakeUpAction();
             execStatus.ExecStatus = 1;
         }
@@ -183,11 +202,17 @@ namespace visualServo {
     }
 
     //接收并处理力传感器的信息
+    //注意，力传感器的数据在试试对接动作过程中不起作用，因为此时程序在等待并联机构指令执行完毕返回
+    //由于并联机构执行两条指令之间会有1秒间隔，因此也无法通过细化对接动作来改进，否则对接过程会很漫长
     void weightSensorDataCallback(const aaw_ros::WeightSensorData::ConstPtr & msg)
     {
-        if (msg->weight >= outaSecurityWeight_)
+        //如果没有启动伺服，或者机构已经在回撤阶段了，忽略力传感器的数据
+        if (taskFinished_ || readyToGoHome_)
+            return;
+        if (msg->weight >= outaSecurityWeight_) {
             std::cerr<<"Weight is "<<msg->weight<<", overloaded!\n";
-        withdrawAndRestartServo();
+            withdrawAndRestartServo();
+        }
     }
 
     //获取并联机构当前的控制量
@@ -269,11 +294,11 @@ namespace visualServo {
      * 其他控制请求函数允许多次请求。
      * 当未唤起moveRobotServer中的服务时，允许重复尝试。
      */
-    int dock()
+    int dock(float distance)
     {
         aaw_ros::MoveRobot_DistanceZ moveDistanceSrv;
         moveDistanceSrv.request.isUp = true;
-        moveDistanceSrv.request.goUpDistance = moveUpDistance_;
+        moveDistanceSrv.request.goUpDistance = distance;
         if (moveClientPtr_DistanceZ->call(moveDistanceSrv)) {
             ROS_INFO("Feedback from server: %d", moveDistanceSrv.response.ExecStatus);
             if (moveDistanceSrv.response.ExecStatus == 1) {
@@ -289,10 +314,10 @@ namespace visualServo {
         }
     }
 
-    void ensureDock()
+    void ensureDock(float distance)
     {
         unsigned int commuRetryingCount_ = 0;
-        while((commuRetryingCount_ < communicationRetryingTimes_) && !dock()) {
+        while((commuRetryingCount_ < communicationRetryingTimes_) && !dock(distance)) {
             ++commuRetryingCount_;
             showMsg("Retrying to call moveRobotServer...");
             sleep(1);
@@ -579,9 +604,164 @@ namespace visualServo {
             return 0;
         }
         else {
-            ROS_INFO("Feedback from server: %d", LDSMotionCtrlSrv.response.ExecStatus);
+            ROS_INFO("Feedback from LDSMotionCtrl server: %d", LDSMotionCtrlSrv.response.ExecStatus);
             return LDSMotionCtrlSrv.response.ExecStatus;
         }
+    }
+
+    //打开侧边的激光位移传感器开始测距
+    void turnOnQuietLDS()
+    {
+        aaw_ros::LDSInteraction LDSInterSrv;
+        LDSInterSrv.request.toTurnOnLaser = true;
+        LDSInterSrv.request.toTurnOffLaser = false;
+        LDSInterSrv.request.toReadDistance = false;
+
+        unsigned int commuRetryingCount_ = 0;
+
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(LDSQuietClientPtr->call(LDSInterSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call LDS_Quiescent_Interaction_service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            ROS_ERROR("Fail to call LDS_Quiescent_Interaction_service!");
+        else if (!LDSInterSrv.response.ExecStatus)
+            ROS_ERROR("Failed to turn on quiescent LDS laser!");
+    }
+
+    //关闭侧边的激光位移传感器
+    void turnOffQuietLDS()
+    {
+        aaw_ros::LDSInteraction LDSInterSrv;
+        LDSInterSrv.request.toTurnOnLaser = false;
+        LDSInterSrv.request.toTurnOffLaser = true;
+        LDSInterSrv.request.toReadDistance = false;
+
+        unsigned int commuRetryingCount_ = 0;
+
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(LDSQuietClientPtr->call(LDSInterSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call LDS_Quiescent_Interaction_service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            ROS_ERROR("Fail to call LDS_Quiescent_Interaction_service!");
+        else if (!LDSInterSrv.response.ExecStatus)
+            ROS_ERROR("Failed to turn off quiescent LDS laser!");
+    }
+
+    //读取侧边的激光位移传感器测得的位移数据
+    float getDistanceFromQuietLDS()
+    {
+        aaw_ros::LDSInteraction LDSInterSrv;
+        LDSInterSrv.request.toTurnOnLaser = false;
+        LDSInterSrv.request.toTurnOffLaser = false;
+        LDSInterSrv.request.toReadDistance = true;
+
+        unsigned int commuRetryingCount_ = 0;
+
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(LDSQuietClientPtr->call(LDSInterSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call LDS_Quiescent_Interaction_service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            ROS_ERROR("Fail to call LDS_Quiescent_Interaction_service!");
+        else if (!LDSInterSrv.response.ExecStatus)
+            ROS_ERROR("Failed to get LDS distance data!");
+        else {
+            ROS_INFO("Quiescent LDS distance data: %f", LDSInterSrv.response.distance);
+            return LDSInterSrv.response.distance;
+        }
+    }
+
+    //打开推出的激光位移传感器开始测距
+    void turnOnLocomLDS()
+    {
+        aaw_ros::LDSInteraction LDSInterSrv;
+        LDSInterSrv.request.toTurnOnLaser = true;
+        LDSInterSrv.request.toTurnOffLaser = false;
+        LDSInterSrv.request.toReadDistance = false;
+
+        unsigned int commuRetryingCount_ = 0;
+
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(LDSLocomClientPtr->call(LDSInterSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call LDS_Locomotory_Interaction_service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            ROS_ERROR("Fail to call LDS_Locomotory_Interaction_service!");
+        else if (!LDSInterSrv.response.ExecStatus)
+            ROS_ERROR("Failed to turn on locomotory LDS laser!");
+    }
+
+    //关闭推出的激光位移传感器
+    void turnOffLocomLDS()
+    {
+        aaw_ros::LDSInteraction LDSInterSrv;
+        LDSInterSrv.request.toTurnOnLaser = false;
+        LDSInterSrv.request.toTurnOffLaser = true;
+        LDSInterSrv.request.toReadDistance = false;
+
+        unsigned int commuRetryingCount_ = 0;
+
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(LDSLocomClientPtr->call(LDSInterSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call LDS_Locomotory_Interaction_service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            ROS_ERROR("Fail to call LDS_Locomotory_Interaction_service!");
+        else if (!LDSInterSrv.response.ExecStatus)
+            ROS_ERROR("Failed to turn off locomotory LDS laser!");
+    }
+
+    //读取推出的激光位移传感器测得的位移数据
+    float getDistanceFromLocomLDS()
+    {
+        aaw_ros::LDSInteraction LDSInterSrv;
+        LDSInterSrv.request.toTurnOnLaser = false;
+        LDSInterSrv.request.toTurnOffLaser = false;
+        LDSInterSrv.request.toReadDistance = true;
+
+        unsigned int commuRetryingCount_ = 0;
+
+        while ((commuRetryingCount_ < communicationRetryingTimes_) && !(LDSLocomClientPtr->call(LDSInterSrv))) {
+            ++commuRetryingCount_;
+            showMsg("Retrying to call LDS_Locomotory_Interaction_service...");
+            sleep(1);
+        }
+        if (commuRetryingCount_ >= communicationRetryingTimes_)
+            ROS_ERROR("Fail to call LDS_Locomotory_Interaction_service!");
+        else if (!LDSInterSrv.response.ExecStatus)
+            ROS_ERROR("Failed to get LDS distance data!");
+        else {
+            ROS_INFO("Locomotory LDS distance data: %f", LDSInterSrv.response.distance);
+            return LDSInterSrv.response.distance;
+        }
+    }
+
+    //由激光位移传感器的信息调整物体在相机Z轴方向的距离
+    void adjustSideDistance()
+    {
+        float distance = getDistanceFromQuietLDS();
+        //由于相机正对物体，相当于往相机坐标系Z轴方向调整位置，使用相机速度控制方式即可实现
+        //先除以时间积分获得速度，坐标变换类会乘以时间积分获得位移量
+        //0.001是单位换算，mm换算成m
+        float ZVel = 0.001 * (distance - desiredQuietLDSData_)/timeIntegUsedInCoordTrans_;
+        Eigen::Matrix<float, 6, 1> cameraVel;
+        cameraVel << 0, 0, ZVel, 0, 0, 0;
+        ensureVisualServoRobot(cameraVel);
+    }
+
+    //由激光位移传感器的信息获取对接动作需要运动的距离，分离时需要这里的数据，因此每次启动程序先进行的必须是对接动作
+    void getDockingDistance()
+    {
+        LocomLDSData_ = getDistanceFromLocomLDS();
+        moveUpDistance_ = LocomLDSData_ + deltaDockingDist_;
+        moveDownDistance_ = moveUpDistance_;
     }
 
     void showMsg(const char * msg)
@@ -621,6 +801,9 @@ int main(int argc, char** argv) {
     ros::ServiceClient adjustCarPosClient = nh_.serviceClient<interaction::AdjustCarPos>("adjust_car_pos_service");
     restartRobotMotion_ = nh_.advertiseService("restart_robot_motion_service", &restartRobotMotionCallback);
 
+    ros::ServiceClient LDSQuietClient = nh_.serviceClient<aaw_ros::LDSInteraction>("LDS_Quiescent_Interaction_service");
+    ros::ServiceClient LDSLocomClient = nh_.serviceClient<aaw_ros::LDSInteraction>("LDS_Locomotory_Interaction_service");
+
     weightSensorSub_ = nh_.subscribe("weigt_sensor_data", 1, &weightSensorDataCallback);
     robotCtrlValSub_ = nh_.subscribe("current_robot_ctrl_val", 1, &robotCtrlValCallback);
 
@@ -634,6 +817,8 @@ int main(int argc, char** argv) {
     updateCoordTransClientPtr = &updateCoordTransClient;
     moveCarClientPtr = &moveCarClient;
     adjustCarPosClientPtr = &adjustCarPosClient;
+    LDSQuietClientPtr = &LDSQuietClient;
+    LDSLocomClientPtr = &LDSLocomClient;
 
     ibvsPtr = new AAWIBVS(AAWIBVS::SN11818179);
 
@@ -641,12 +826,14 @@ int main(int argc, char** argv) {
     cv::resizeWindow(Left_View, 800, 450);
     cv::namedWindow(Right_View, cv::WINDOW_NORMAL);
     cv::resizeWindow(Right_View, 800, 450);
-    ros::Duration timer(0.1);
 
-    while (ros::ok()) {
-        ros::spinOnce();
-        timer.sleep();
-    }
+    // ros::Duration timer(0.1);
+    // while (ros::ok()) {
+    //     ros::spinOnce();
+    //     timer.sleep();
+    // }
+
+    ros::spin();
 
     delete ibvsPtr;
     return 0;

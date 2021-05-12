@@ -14,7 +14,8 @@ public:
     ~AAWMotorDriverServerSide();
 
 private:
-    static const unsigned int motionTime_;
+    static const float stickOutTime_;
+    static const float pullBackTime_;
 
     ros::NodeHandle nh_;
     ros::ServiceServer LDSMotionCtrl_;

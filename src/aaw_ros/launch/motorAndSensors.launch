@@ -1,0 +1,7 @@
+<launch>    
+    <node pkg="aaw_ros" type="aaw_motorDriverServer_Up" name="aaw_motorDriverServer_Up"/>
+    <!--<node pkg="aaw_ros" type="aaw_motorDriverServer_Side" name="aaw_motorDriverServer_Side"/>-->
+    <!--<node pkg="aaw_ros" type="aaw_LDSDriverServer_Locomotory" name="aaw_LDSDriverServer_Locomotory"/>-->
+    <!--<node pkg="aaw_ros" type="aaw_LDSDriverServer_Quiescent" name="aaw_LDSDriverServer_Quiescent"/>-->
+    <node pkg="aaw_ros" type="aaw_weightSensorDataReader" name="aaw_weightSensorDataReader"/>
+</launch>

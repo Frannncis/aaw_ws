@@ -1,7 +1,7 @@
 #include "aaw_motorDriverServer_Side.h"
 
-const unsigned int AAWMotorDriverServerSide::motionTime_ = 10; //留给电机的单程运动时间，这个时间之后才允许进行其他动作
-
+const float AAWMotorDriverServerSide::stickOutTime_ = 12; //留给电机的单程运动时间，这个时间之后才允许进行其他动作
+const float AAWMotorDriverServerSide::pullBackTime_ = 4;
 /* 构造函数。
  * 发布1个ROS Service接受visualServo的运动控制请求。
  */
@@ -9,8 +9,8 @@ AAWMotorDriverServerSide::AAWMotorDriverServerSide(ros::NodeHandle* nodehandle):
 {
     LDSMotionCtrl_ = nh_.advertiseService("LDS_motion_ctrl_service", &AAWMotorDriverServerSide::LDSMotionCtrlCallback, this);
 
-    sideMotorServerPtr_ = new AAWMotorServer(4000);
-    ushort vel = 400;   //RPM
+    sideMotorServerPtr_ = new AAWMotorServer(5000);
+    ushort vel = 300;   //RPM
     ushort pulses = 9000;
 
     sideMotorServerPtr_->waitUntilConnected();
@@ -43,11 +43,11 @@ int AAWMotorDriverServerSide::stickOut()
 {
     if (sideMotorServerPtr_->stickOut())
     {
-        sleep(motionTime_);
+        sleep(stickOutTime_);
         return 1;
     }
     else {
-        errorMsg("Motor action failed!");
+        errorMsg("LDS sticking out failed!");
         return 0;
     }
 }
@@ -59,11 +59,11 @@ int AAWMotorDriverServerSide::pullBack()
 {
     if (sideMotorServerPtr_->pullBack())
     {
-        sleep(motionTime_);
+        sleep(pullBackTime_);
         return 1;
     }
     else {
-        errorMsg("Motor action failed!");
+        errorMsg("LDS pulling back failed!");
         return 0;
     }
 }

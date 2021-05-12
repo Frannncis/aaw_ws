@@ -21,6 +21,7 @@
 #include <aaw_ros/ChangeTimeIntegration.h>
 #include <aaw_ros/BoltMotionCtrl.h>
 #include <aaw_ros/LDSMotionCtrl.h>
+#include <aaw_ros/LDSInteraction.h>
 #include <aaw_ros/UpdateCoordTransformer.h>
 #include <aaw_ros/WeightSensorData.h>
 #include <aaw_ros/CurrentRobotCtrlVal.h>
@@ -39,13 +40,23 @@ namespace visualServo
     bool readyToGoHome_ = false;    //上方的插销动作完成后，将此标志设为true，进行回撤和回零点动作。
     bool taskFinished_ = true; //正式程序中，这个的初始值应该为true，等收到小车的信号再设为false.
     bool timeIntegrationChanged_ = false;
-    const float moveUpDistance_ = 90.44059;
-    const float moveDownDistance_ = moveUpDistance_;
+    const float desiredQuietLDSData_ = 125.5;
+
+    //启用测量凹槽深度的激光位移传感器时:
+    float LocomLDSData_ = 0;
+    const float deltaDockingDist_ = 25.0; //激光位移传感器的读数加上这个增量就是对接和分离动作运动的距离
+    // float moveUpDistance_ = 0;
+    // float moveDownDistance_ = 0;
+
+    //未启用测量凹槽深度的激光位移传感器时:
+    float moveUpDistance_ = 91.52895;
+    float moveDownDistance_ = moveUpDistance_;
+    
     const unsigned int communicationRetryingTimes_ = 5;
     const float lowVelTimeIntegration_ = 0.4;   //senconds
     std::vector<float> newCtrlVal_(originalCtrlVal_); //当物体与相机靠得太近时，用来处理并联机构侧移的控制量
     float cameraStepBackLength_ = 20;   //物体与相机靠太近时，相机每次尝试后退的距离，单位为mm
-    const int outaSecurityWeight_ = 2200;
+    const int outaSecurityWeight_ = 3000; //实际使用时需要在运行前将力传感器的数据归零，这样才有意义
     std::vector<float> currentCtrlVal_(originalCtrlVal_);
 
     ros::ServiceClient *moveClientPtr;
@@ -61,6 +72,9 @@ namespace visualServo
     ros::ServiceClient *adjustCarPosClientPtr;
     ros::ServiceServer restartRobotMotion_;
 
+    ros::ServiceClient *LDSQuietClientPtr;
+    ros::ServiceClient *LDSLocomClientPtr;
+
     ros::Subscriber weightSensorSub_;
     ros::Subscriber robotCtrlValSub_;
 
@@ -74,8 +88,8 @@ namespace visualServo
     //并联机构控制相关函数
     int visualServoRobot(Eigen::Matrix<float, 6, 1> & camCtrlVel);
     void ensureVisualServoRobot(Eigen::Matrix<float, 6, 1> & camCtrlVel);
-    int dock();
-    void ensureDock();
+    int dock(float distance);
+    void ensureDock(float distance);
     void disableRobot();
     void enableRobot();
     void withdrawAndGoHome();
@@ -92,6 +106,17 @@ namespace visualServo
     //侧方推杆控制相关函数
     int pushOutLDS();
     int pullBackLDS();
+
+    //LDS控制相关函数
+    void turnOnQuietLDS();
+    void turnOffQuietLDS();
+    float getDistanceFromQuietLDS();
+    void turnOnLocomLDS();
+    void turnOffLocomLDS();
+    float getDistanceFromLocomLDS();
+
+    void adjustSideDistance();
+    void getDockingDistance();
 
     void wakeUpAction();
     int updateCoordTrans(std::vector<float> & robotCtrlVal);

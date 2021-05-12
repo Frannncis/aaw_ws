@@ -73,7 +73,7 @@ int AAWWeightSensorReader::openSerialPort(const std::string & port)
     }
 
     if (serialPort_.isOpen()) {
-        showMsg("Serial port initialized!");
+        showMsg("Weight sensor initialized!");
         return 1;
     }
     else {

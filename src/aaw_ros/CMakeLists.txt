@@ -48,6 +48,8 @@ cs_add_executable(aaw_getDesiredCoordsOnNP src/aaw_getDesiredCoordsOnNP.cpp src/
 cs_add_executable(aaw_motorDriverServer_Up src/aaw_motorDriverServer_Up.cpp src/aawserver4motor.cpp)
 cs_add_executable(aaw_motorDriverServer_Side src/aaw_motorDriverServer_Side.cpp src/aawserver4motor.cpp)
 cs_add_executable(aaw_weightSensorDataReader src/aaw_weightSensorDataReader.cpp)
+cs_add_executable(aaw_LDSDriverServer_Quiescent src/aaw_LDSDriverServer_Quiescent.cpp src/aawldsdriver.cpp)
+cs_add_executable(aaw_LDSDriverServer_Locomotory src/aaw_LDSDriverServer_Locomotory.cpp src/aawldsdriver.cpp)
 #cs_add_executable(harris_corners src/harris_corners.cpp)
 #the following is required, if desire to link a node in this package with a library created in this same package
 # edit the arguments to reference the named node and named library within this package

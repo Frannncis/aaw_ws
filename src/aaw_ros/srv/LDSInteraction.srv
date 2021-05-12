@@ -1,0 +1,6 @@
+bool toTurnOnLaser
+bool toTurnOffLaser
+bool toReadDistance
+---
+int32 ExecStatus
+float32 distance

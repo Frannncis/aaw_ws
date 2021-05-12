@@ -1,8 +1,8 @@
 ﻿#include "aawibvs.h"
 
 const float AAWIBVS::lambda_ = 0.5;
-const float AAWIBVS::varianceOfEVEA_Threshold_Near_ = 1.0e-2;//1.0e-3;
-const float AAWIBVS::varianceOfEVEA_Threshold_Arrived_ = 1.0e-3; //5.0e-5;
+const float AAWIBVS::varianceOfEVEA_Threshold_Near_ = 1.0e-3;//1.0e-2;
+const float AAWIBVS::varianceOfEVEA_Threshold_Arrived_ = 5.0e-5;//1.0e-3;
 const unsigned int AAWIBVS::pointsNumber_ = 4;
 const unsigned int AAWIBVS::desiredCoordsAccumMaxTimes_ = 50; //获取期望位姿的样本量（取这些样本的平均值作为期望位姿）
 const unsigned int AAWIBVS::maxListSize_ = 5;
@@ -98,8 +98,8 @@ void AAWIBVS::measureDesiredCoordsOnNP() {
  */
 bool AAWIBVS::isDesiredPosArrived()
 {
-    std::cout<<"sum of abs error vector elements: "<<sumOfErrorVecElementsAbs_<<"\n";
-    if (varianceOfEVEA_ < varianceOfEVEA_Threshold_Arrived_)
+    // std::cout<<"sum of abs error vector elements: "<<sumOfErrorVecElementsAbs_<<"\n";
+    if ((varianceOfEVEA_ < varianceOfEVEA_Threshold_Arrived_) && (sumOfErrorVecElementsAbs_ < 0.1))
         return true;
     return false;
 }
@@ -109,8 +109,10 @@ bool AAWIBVS::isDesiredPosArrived()
  * @return　是否伺服接近期望位姿的判断结果。
  */
 bool AAWIBVS::isDesiredPosNear() {
-    if (varianceOfEVEA_ < varianceOfEVEA_Threshold_Near_)
+    if ((varianceOfEVEA_ < varianceOfEVEA_Threshold_Near_) && (sumOfErrorVecElementsAbs_ < 0.1)) {
+        std::cout<<"Desired pos near!\n";
         return true;
+    }
     return false;
 }
 
@@ -286,6 +288,7 @@ void AAWIBVS::updateEVEAList()
 /**
  * 计算误差向量元素绝对值之和的方差。
  * @return　误差向量元素绝对值之和的方差。
+ * @note 只有一个元素的时候，计算出来的方差是0，所以收敛判断时要排除第一个元素。
  */
 void AAWIBVS::calcVarianceOfEVEA() {
     float varianceOfEVEA_sum = 0;
