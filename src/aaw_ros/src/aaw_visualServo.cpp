@@ -17,7 +17,7 @@ namespace visualServo {
                 showMsg("Undocking completed!");
             taskFinished_ = true;
             disableRobot();
-            // waitAndWakeUpAction();
+            // waitAndWakeUpAction(); //需要循环动作就将这句取消注释
             // while (!askCarToMove()) //执行结束，让小车移动
             //     sleep(1);
             return;
@@ -81,7 +81,7 @@ namespace visualServo {
             // cv::destroyWindow(Right_View);
 
             //读取侧边的激光位移传感器的数据，确保物体在相机Z轴方向的深度满足要求
-            //还需要取消wakeUpAction()函数中的相关注释
+            //还需要取消 wakeUpAction()函数中的相关注释
             // adjustSideDistance();
             // turnOffQuietLDS();
 

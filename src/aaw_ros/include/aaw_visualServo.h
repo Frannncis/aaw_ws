@@ -120,12 +120,13 @@ namespace visualServo
 
     void wakeUpAction();
     int updateCoordTrans(std::vector<float> & robotCtrlVal);
-    void waitAndWakeUpAction();     //不与小车通信时用这个触发新的动作
+    void waitAndWakeUpAction();     //不与小车通信时可用这个触发循环动作
 
     bool restartRobotMotionCallback(interaction::RestartRobotMotionRequest& requestMotion, interaction::RestartRobotMotionResponse& execStatus);
     void weightSensorDataCallback(const aaw_ros::WeightSensorData::ConstPtr & msg);
     void robotCtrlValCallback(const aaw_ros::CurrentRobotCtrlVal::ConstPtr & msg);
 
+    //小车服务调用函数
     int askCarToMove();
     int carCreepingForward();
     int carCreepingBackward();
